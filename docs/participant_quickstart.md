@@ -146,7 +146,7 @@ Practice 5–10 demos before recording.
 
 Full guide: **[Data collection](data-collection.md)** (format, storage, H.264 video, LeRobot doc links).
 
-Log in so the dataset can upload:
+Log in if you later want to push datasets (`hf upload`). Recording itself stays local:
 
 ```bash
 hf auth login
@@ -167,15 +167,22 @@ Keys while recording (terminal must stay focused on macOS without Accessibility 
 | --- | --- |
 | `n` or `→` | save episode, go to next |
 | `r` or `←` | redo this episode |
-| `q` or `Esc` | finish session, encode, upload |
+| `q` or `Esc` | finish session, encode locally (no Hub upload) |
 
 Press **`n` after each demo you want to keep** — quitting with `q` mid-episode does not save it.
 
 Defaults in `station.env`: 50 episodes × 30 s + 10 s reset. That is the SmolVLA starting point.
 
-**Data quality beats model choice.** First 50 episodes: one object, fixed pizza pose, fixed camera, one operator, deliberate grasps. Visualize before training:
+**Data quality beats model choice.** First 50 episodes: one object, fixed pizza pose, fixed camera, one operator, deliberate grasps.
 
-https://huggingface.co/spaces/lerobot/visualize_dataset
+After recording, `record.sh` prints a Rerun command. Preview the saved episodes (video + joints):
+
+```bash
+uv run rerun ~/.cache/huggingface/lerobot/${HF_USER}/${DATASET_NAME}_<timestamp>
+# or: bash scripts/viz_dataset.sh
+```
+
+Live Rerun during record does **not** play video (images are logged static). Use the commands above. Hub visualizer: https://huggingface.co/spaces/lerobot/visualize_dataset
 
 Replay episode 0 on the follower:
 
@@ -227,7 +234,7 @@ Apple Silicon: the wrapper sets `--policy.device=mps` automatically.
 SmolVLA is the headline path (~50 demos, language-conditioned). Do **not** train 20k steps on this laptop.
 
 1. Smoke-test the container locally (6a).
-2. Push the dataset to the Hub (already done if record uploaded).
+2. Push the dataset to the Hub when you want (`hf upload` — recording does not upload).
 3. Submit a GPU job, same shape as [lerobot-finetune-job](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/lerobot-finetune-job):
 
 ```bash

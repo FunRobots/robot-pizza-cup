@@ -34,6 +34,7 @@ Then: find ports → calibrate → teleoperate → record → train. Full comman
 | Calibrate | `bash scripts/calibrate.sh follower` then `leader` |
 | Teleop | `bash scripts/teleoperate.sh` |
 | Record 50 demos | `bash scripts/record.sh` |
+| Preview in Rerun | `bash scripts/viz_dataset.sh` |
 | Local ACT smoke | `bash scripts/train_local.sh act lerobot/pusht 20` |
 | Cloud GPU job | `bash scripts/run_serverless.sh smolvla $HF_USER/$DATASET_NAME 20000` |
 | Run policy | `bash scripts/rollout.sh <checkpoint>` |

@@ -40,7 +40,7 @@ Set these before recording:
 | `CAMERA_INDEX` | Front / workspace OpenCV index |
 | `CAMERA_INDEX_TOP` | Overhead OpenCV index; leave empty for front-only |
 
-Log in so datasets can upload (token needs **write** access):
+Log in only if you will push to the Hub later (token needs **write** access). Recording does not upload:
 
 ```bash
 hf auth login
@@ -80,7 +80,7 @@ Keep the **terminal focused** on macOS unless Accessibility / Input Monitoring i
 | --- | --- |
 | `n` or `→` | Finish this episode, **save it**, start reset / next |
 | `r` or `←` | Discard this episode and re-record |
-| `q` or `Esc` | Stop session, encode remaining work, upload |
+| `q` or `Esc` | Stop session, encode remaining work (local only) |
 
 **Important:** `q` / `Esc` quits immediately. An in-progress episode that was never confirmed with `n` is **not saved**. Press `n` after each demo you want to keep.
 
@@ -124,7 +124,7 @@ Keyed by `FOLLOWER_ID` and `LEADER_ID`. Details: [hardware/calibration/README.md
 
 ## 4. Upload to Hugging Face Hub
 
-`scripts/record.sh` sets `--dataset.repo_id=${HF_USER}/${DATASET_NAME}` and uploads automatically when you finish recording with `q` / `Esc` (LeRobot default: `push_to_hub=true`). See [il_robots — dataset upload](https://huggingface.co/docs/lerobot/il_robots#dataset-upload).
+`scripts/record.sh` saves **locally only** (`--dataset.push_to_hub=false`). LeRobot’s default is to upload; this repo turns that off. Push later with `hf upload` when you choose. See [il_robots — dataset upload](https://huggingface.co/docs/lerobot/il_robots#dataset-upload).
 
 ### Choose destination in `station.env`
 
@@ -156,7 +156,7 @@ set -a && source hardware/station.env && set +a
 bash scripts/record.sh
 ```
 
-Press `n` after each saved episode; press `q` when done to encode and upload.
+Press `n` after each saved episode; press `q` when done to encode locally. Upload is optional (see below).
 
 ### Upload an existing local dataset (no re-record)
 
@@ -190,13 +190,9 @@ uv run hf upload RobotPizzaCup/pizza_hack_v1 \
 
 Use the **exact local folder path** (namespace folder + timestamp suffix from the recording session). Add `--private` to keep the dataset private until you publish it.
 
-### Skip upload during recording
+### Recording does not upload
 
-```bash
-uv run lerobot-record ... --dataset.push_to_hub=false
-```
-
-Upload later with `hf upload` as above.
+`scripts/record.sh` already passes `--dataset.push_to_hub=false`. Use `hf upload` above when you want the Hub copy.
 
 ### Use the dataset for training
 
@@ -262,9 +258,21 @@ Joint positions live in **parquet**; camera frames are stored as **H.264 MP4** w
 
 ## 6. Inspect and replay
 
-### Visualize (recommended)
+Live Rerun during `record.sh` shows joints moving but **freezes the camera**. LeRobot logs images as `static=True` (RAM). The MP4s on disk are the real video. Preview them after the session.
 
-Open the [dataset visualizer](https://huggingface.co/spaces/lerobot/visualize_dataset) and enter your Hub repo id or load the local folder. This shows camera video synced with joint traces — better than opening raw MP4s.
+`scripts/record.sh` prints a copy-paste command when it exits. Open the stamped folder in the Rerun app (video + joints stay open until you quit):
+
+```bash
+uv run rerun "$HOME/.cache/huggingface/lerobot/mnrozhkov/pizza_hack_v1_YYYYMMDD_HHMMSS"
+```
+
+Or the newest local dataset:
+
+```bash
+bash scripts/viz_dataset.sh
+```
+
+Web visualizer (Hub): [visualize_dataset](https://huggingface.co/spaces/lerobot/visualize_dataset).
 
 ### Play a single episode video
 
@@ -295,7 +303,7 @@ Before training, confirm:
 - [ ] 50+ episodes with consistent scene setup (object pose, pizza position, camera mount)
 - [ ] Same `TASK` string everywhere
 - [ ] Episodes saved with `n` (check local `meta/episodes/` or Hub upload)
-- [ ] Visualizer shows smooth motion and correct camera framing
+- [ ] Visualizer shows smooth motion and correct camera framing (`bash scripts/viz_dataset.sh`)
 - [ ] `bash scripts/replay.sh 0` looks like your demonstration
 
 Collect more consistent data before switching models if ACT success is below ~70% on the same scene.

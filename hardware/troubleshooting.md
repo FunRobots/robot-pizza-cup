@@ -125,4 +125,11 @@ For older AV1 datasets:
 - Open with [VLC](https://www.videolan.org/vlc/) or [IINA](https://iina.io/)
 - Or convert: `ffmpeg -i file-000.mp4 -c:v h264_videotoolbox -b:v 2M ~/Desktop/episode.mp4`
 
-Prefer the [LeRobot dataset visualizer](https://huggingface.co/spaces/lerobot/visualize_dataset) for inspection — it syncs video with joint data. See [docs/data-collection.md](../docs/data-collection.md).
+Prefer Rerun on the **saved dataset** (not the live record window):
+
+```bash
+uv run rerun "$HOME/.cache/huggingface/lerobot/${HF_USER}/${DATASET_NAME}_<timestamp>"
+# or: bash scripts/viz_dataset.sh
+```
+
+Live Rerun during `record.sh` freezes the camera on purpose (`static=True`). See [docs/data-collection.md](../docs/data-collection.md#6-inspect-and-replay).
