@@ -1,0 +1,28 @@
+# SmolVLA fine-tune from lerobot/smolvla_base (LeRobot 0.6.x).
+#
+# Replace dataset.repo_id with your recorded Hub dataset after data collection.
+# ~20k steps ≈ 4h on A100; start with 2k–5k as a pipeline check.
+#
+# Cloud:
+#   lerobot-train --config_path=training/smolvla/config.yaml --policy.device=cuda
+
+policy:
+  path: lerobot/smolvla_base
+  type: smolvla
+  push_to_hub: false
+  device: cuda
+  freeze_vision_encoder: false
+  train_expert_only: false
+
+dataset:
+  repo_id: lerobot/svla_so100_pickplace
+
+steps: 20000
+batch_size: 8
+save_freq: 2000
+job_name: pizza-smolvla
+
+wandb:
+  enable: false
+
+output_dir: outputs/train/smolvla

@@ -1,0 +1,25 @@
+# ACT smoke / first real-robot policy (LeRobot 0.6.x).
+#
+# Local CPU/MPS (macOS):
+#   uv run lerobot-train --config_path=training/act/config.yaml --steps=20 --batch_size=2 --policy.device=mps
+#
+# Cloud GPU:
+#   lerobot-train --config_path=training/act/config.yaml --policy.device=cuda
+
+policy:
+  type: act
+  push_to_hub: false
+  device: cuda
+
+dataset:
+  repo_id: lerobot/pusht
+
+steps: 5000
+batch_size: 8
+save_freq: 2500
+job_name: pizza-act
+
+wandb:
+  enable: false
+
+output_dir: outputs/train/act

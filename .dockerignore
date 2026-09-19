@@ -1,0 +1,14 @@
+.venv
+.git
+.gitignore
+outputs
+lerobot-outputs
+docs
+hardware
+datasets
+assets
+*.md
+.env
+.env.*
+hardware/station.env
+**/.DS_Store
