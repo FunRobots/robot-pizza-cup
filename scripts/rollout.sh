@@ -4,12 +4,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-STATION="${STATION_ENV:-$ROOT/hardware/station.env}"
-if [[ ! -f "$STATION" ]]; then
-  echo "Missing $STATION — copy hardware/station.env.example and fill in ports." >&2
-  exit 1
-fi
-set -a && source "$STATION" && set +a
+# shellcheck source=load_config.sh
+source "$ROOT/scripts/load_config.sh"
 
 POLICY_PATH="${1:-}"
 if [[ -z "$POLICY_PATH" ]]; then

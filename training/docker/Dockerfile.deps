@@ -1,7 +1,12 @@
-# CUDA runtime for cloud / Docker training.
-# Local robot work uses `uv sync` on the host, not this image.
-# Follows https://huggingface.co/docs/lerobot/installation (uv path).
-FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04
+# syntax=docker/dockerfile:1
+# Heavy CUDA deps image: OS + uv + torch/lerobot wheels.
+# Rebuild and push only when pyproject.toml / uv.lock (or this file) change.
+#
+#   bash training/scripts/build_docker.sh --target deps --push
+#
+# Build linux/amd64 (Nebius L40S/H100). Pass --platform on `docker build`, not FROM.
+
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04 AS cuda-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -26,32 +31,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     libxrender-dev \
     curl \
-    unzip \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip && \
-    unzip /tmp/awscliv2.zip -d /tmp && \
-    /tmp/aws/install && \
-    rm -rf /tmp/awscliv2.zip /tmp/aws
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
+FROM cuda-base AS deps
+
 WORKDIR /lerobot
 RUN mkdir -p outputs
 
-COPY pyproject.toml ./
-COPY training/ ./training/
+COPY pyproject.toml uv.lock ./
 
 ENV UV_INDEX_STRATEGY=unsafe-best-match
 ENV UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cu128
+ENV UV_HTTP_TIMEOUT=120
+ENV UV_HTTP_RETRIES=5
+ENV UV_PROJECT_ENVIRONMENT=/lerobot/.venv
 ENV TRAIN_DEVICE=cuda
 
-RUN uv python install 3.12 && uv venv --python 3.12 .venv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv python install 3.12 && \
+    uv venv --python 3.12 .venv && \
+    uv sync --frozen --no-install-project --no-dev --python 3.12 --index-strategy unsafe-best-match
+
 ENV VIRTUAL_ENV=/lerobot/.venv
 ENV PATH="/lerobot/.venv/bin:$PATH"
-
-RUN uv sync --no-dev --python 3.12 --index-strategy unsafe-best-match
-
-ENTRYPOINT ["python", "-m", "training.run"]

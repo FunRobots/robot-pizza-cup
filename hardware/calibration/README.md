@@ -19,4 +19,4 @@ If you change the id, you are starting a new robot identity and must recalibrate
 3. Run `bash scripts/calibrate.sh follower`, then `bash scripts/calibrate.sh leader`.
 4. Move the arm to the mid-range pose, press Enter, then sweep **each joint through its full range**.
 
-See [Participant quickstart](../docs/participant_quickstart.md) for the full command sequence.
+See [Participant quickstart](../../docs/participant_quickstart.md) for the full command sequence.

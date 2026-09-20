@@ -3,16 +3,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-STATION="${STATION_ENV:-$ROOT/hardware/station.env}"
-if [[ ! -f "$STATION" ]]; then
-  echo "Missing $STATION — copy hardware/station.env.example and fill in ports." >&2
-  exit 1
-fi
-set -a && source "$STATION" && set +a
+# shellcheck source=load_config.sh
+source "$ROOT/scripts/load_config.sh"
 # shellcheck source=cameras.sh
 source "$ROOT/scripts/cameras.sh"
 
 CAMERAS="$(build_cameras_dict)"
+if [[ -z "${HF_USER:-}" || -z "${DATASET_NAME:-}" ]]; then
+  echo "Set HF_USER and DATASET_NAME in .env (not station.env)" >&2
+  exit 1
+fi
 REPO_ID="${HF_USER}/${DATASET_NAME}"
 ENCODER_THREADS="$(($(camera_count) * 2))"
 

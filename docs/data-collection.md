@@ -18,33 +18,37 @@ Official LeRobot references:
 
 ---
 
-## 1. Configure `hardware/station.env`
-
-Copy the template if you have not already:
+## 1. Configure env files
 
 ```bash
 cp hardware/station.env.example hardware/station.env
+cp .env.example .env
 ```
+
+| File | Contains |
+| --- | --- |
+| `hardware/station.env` | Ports, camera indexes, calibration ids, `TASK`, episode timing |
+| `.env` | `HF_USER`, `DATASET_NAME`, `HF_TOKEN`, W&B, Nebius / training |
 
 Set these before recording:
 
-| Variable | Purpose |
-| --- | --- |
-| `HF_USER` | Hub **namespace**: your username *or* an org name (e.g. `mnrozhkov` or `RobotPizzaCup`) |
-| `DATASET_NAME` | Dataset slug, e.g. `pizza_topping_v1` |
-| `TASK` | Natural-language task sentence — **must match train and rollout verbatim** |
-| `NUM_EPISODES` | Target episode count (default 50) |
-| `EPISODE_TIME_S` | Seconds of teleop per episode (default 30) |
-| `RESET_TIME_S` | Seconds to reset the scene between episodes (default 10) |
-| `FOLLOWER_ID` / `LEADER_ID` | Calibration keys — same ids as calibrate/teleop |
-| `CAMERA_INDEX` | Front / workspace OpenCV index |
-| `CAMERA_INDEX_TOP` | Overhead OpenCV index; leave empty for front-only |
+| Variable | File | Purpose |
+| --- | --- | --- |
+| `HF_USER` | `.env` | Hub **namespace**: your username *or* an org (e.g. `RobotPizzaCup`) |
+| `DATASET_NAME` | `.env` | Dataset slug, e.g. `pizza_topping_v1` |
+| `TASK` | `station.env` | Natural-language task sentence — **must match train and rollout verbatim** |
+| `NUM_EPISODES` | `station.env` | Target episode count (default 50) |
+| `EPISODE_TIME_S` | `station.env` | Seconds of teleop per episode (default 30) |
+| `RESET_TIME_S` | `station.env` | Seconds to reset the scene between episodes (default 10) |
+| `FOLLOWER_ID` / `LEADER_ID` | `station.env` | Calibration keys — same ids as calibrate/teleop |
+| `CAMERA_INDEX` | `station.env` | Front / workspace OpenCV index |
+| `CAMERA_INDEX_TOP` | `station.env` | Overhead OpenCV index; leave empty for front-only |
 
 Log in only if you will push to the Hub later (token needs **write** access). Recording does not upload:
 
 ```bash
 hf auth login
-# Personal account — copy your username into station.env:
+# Personal account — copy your username into .env:
 HF_USER=$(NO_COLOR=1 hf auth whoami | awk -F': *' 'NR==1 {print $2}')
 ```
 
@@ -126,7 +130,7 @@ Keyed by `FOLLOWER_ID` and `LEADER_ID`. Details: [hardware/calibration/README.md
 
 `scripts/record.sh` saves **locally only** (`--dataset.push_to_hub=false`). LeRobot’s default is to upload; this repo turns that off. Push later with `hf upload` when you choose. See [il_robots — dataset upload](https://huggingface.co/docs/lerobot/il_robots#dataset-upload).
 
-### Choose destination in `station.env`
+### Choose destination in `.env`
 
 | Destination | `HF_USER` value | Example Hub URL |
 | --- | --- | --- |
@@ -136,7 +140,7 @@ Keyed by `FOLLOWER_ID` and `LEADER_ID`. Details: [hardware/calibration/README.md
 Example — upload to your account:
 
 ```bash
-# hardware/station.env
+# .env
 HF_USER=mnrozhkov
 DATASET_NAME=pizza_hack_v1
 ```
@@ -144,7 +148,7 @@ DATASET_NAME=pizza_hack_v1
 Example — upload to the hackathon org:
 
 ```bash
-# hardware/station.env
+# .env
 HF_USER=RobotPizzaCup
 DATASET_NAME=pizza_hack_v1
 ```
@@ -152,7 +156,7 @@ DATASET_NAME=pizza_hack_v1
 Then record as usual:
 
 ```bash
-set -a && source hardware/station.env && set +a
+set -a && source .env && source hardware/station.env && set +a
 bash scripts/record.sh
 ```
 
@@ -160,7 +164,7 @@ Press `n` after each saved episode; press `q` when done to encode locally. Uploa
 
 ### Upload an existing local dataset (no re-record)
 
-**Find the real local path first** — it depends on what `HF_USER` was *when you recorded*, not what it is now. If you recorded with the template default `your-hf-username`, data lives there even after you change `station.env` to `mnrozhkov`.
+**Find the real local path first** — it depends on what `HF_USER` was *when you recorded*, not what it is now. If you recorded with a placeholder username, data lives there even after you change `.env`.
 
 ```bash
 bash scripts/list_datasets.sh
@@ -199,11 +203,16 @@ Use the **exact local folder path** (namespace folder + timestamp suffix from th
 Pass the full `namespace/dataset_name` (with timestamp if that is how it was recorded):
 
 ```bash
-uv run python -m training.run \
-  --policy act \
-  --dataset "mnrozhkov/pizza_hack_v1_20260919_145422" \
-  --steps 30000
+uv run lerobot-train \
+  --config_path=training/policy/act/config.yaml \
+  --dataset.repo_id="mnrozhkov/pizza_hack_v1_20260919_145422" \
+  --policy.device=mps \
+  --steps=20 \
+  --batch_size=2 \
+  --policy.push_to_hub=false
 ```
+
+Full GPU training: `bash training/scripts/run_serverless.sh act 30000` (see [Train and deploy](train-and-deploy.md)).
 
 Works the same for `RobotPizzaCup/...`.
 
@@ -213,7 +222,7 @@ Works the same for `RobotPizzaCup/...`.
 | --- | --- |
 | `403 Forbidden` | Token lacks write access, or you are not a member of the org |
 | `No episodes saved — skipping push to hub` | No episode was confirmed with `n` before quit |
-| Dataset on Hub under wrong namespace | Set `HF_USER` before recording, or `hf upload` to the correct `org/name` |
+| Dataset on Hub under wrong namespace | Set `HF_USER` in `.env` before recording, or `hf upload` to the correct `org/name` |
 | Replay/train can't find data | Use full repo id including `_<timestamp>`, or `--dataset.root` pointing at the local folder |
 
 ---

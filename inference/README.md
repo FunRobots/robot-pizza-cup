@@ -1,25 +1,37 @@
 # Inference
 
-After training, run the follower autonomously with the **same** robot id, camera names (`front`, and `top` if you recorded it), resolution, FPS, and task sentence used during recording. `scripts/rollout.sh` builds the camera dict from `hardware/station.env`.
+Run a trained policy on the SO-101 follower (no leader). Full checklist and cloud download steps: **[Train and deploy — Deploy on the arm](../docs/train-and-deploy.md#deploy-on-arm)**.
+
+`scripts/rollout.sh` builds the camera dict from `hardware/station.env` — camera keys (`front`, `top`), resolution, FPS, and `TASK` must match recording.
 
 ```bash
-bash scripts/rollout.sh ${HF_USER}/act_pizza_topping_v1
-# or a local checkpoint:
-bash scripts/rollout.sh outputs/train/act/checkpoints/last/pretrained_model
+set -a && source hardware/station.env && set +a
+
+# Local checkpoint
+bash scripts/rollout.sh \
+  outputs/train/<run-name>/checkpoints/last/pretrained_model
+
+# After filesystem download
+bash scripts/rollout.sh \
+  lerobot-outputs/<run-name>/checkpoints/last/pretrained_model
 ```
 
-For slow VLAs (SmolVLA, π0) on a laptop, add RTC in a one-off command:
+For slow VLAs (SmolVLA, π0) on a laptop, add RTC:
 
 ```bash
+set -a && source hardware/station.env && set +a
+# shellcheck source=cameras.sh
+source scripts/cameras.sh
+
 uv run lerobot-rollout \
   --strategy.type=base \
   --inference.type=rtc \
   --robot.type=so101_follower \
   --robot.port="$FOLLOWER_PORT" \
   --robot.id="$FOLLOWER_ID" \
-  --robot.cameras="{ front: {type: opencv, index_or_path: ${CAMERA_INDEX}, width: 640, height: 480, fps: 30}, top: {type: opencv, index_or_path: ${CAMERA_INDEX_TOP}, width: 640, height: 480, fps: 30}}" \
+  --robot.cameras="$(build_cameras_dict)" \
   --task="$TASK" \
   --policy.path="$POLICY_PATH"
 ```
 
-See [Participant quickstart](../docs/participant_quickstart.md#6-deploy-on-the-arm).
+Manual eval scoring: [evaluation/README.md](../evaluation/README.md).

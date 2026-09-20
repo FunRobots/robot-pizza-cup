@@ -4,9 +4,9 @@
 
 October 30 – November 1, 2026 · [Venue / City] · 8–12 teams · 2–4 participants per team
 
-This repository is both the event documentation set **and** the starter environment for SO-101 + LeRobot: install, calibrate a leader/follower pair, collect demonstrations, train ACT locally, and fine-tune SmolVLA in the cloud.
+This repository is both the event documentation set **and** the starter environment for SO-101 + LeRobot: install, calibrate a leader/follower pair, collect demonstrations, smoke-test ACT locally, and fine-tune on Nebius GPU.
 
-**Start here (hardware + training):** [Participant quickstart](docs/participant_quickstart.md)
+**Start here (hardware + training):** [Participant quickstart](docs/participant_quickstart.md) · **Train → deploy:** [Train and deploy](docs/train-and-deploy.md)
 
 Status: **Draft v0.1** — technical validation phase (see [Launch Plan](docs/05-launch-plan.md)).
 
@@ -35,8 +35,10 @@ Then: find ports → calibrate → teleoperate → record → train. Full comman
 | Teleop | `bash scripts/teleoperate.sh` |
 | Record 50 demos | `bash scripts/record.sh` |
 | Preview in Rerun | `bash scripts/viz_dataset.sh` |
-| Local ACT smoke | `bash scripts/train_local.sh act lerobot/pusht 20` |
-| Cloud GPU job | `bash scripts/run_serverless.sh smolvla $HF_USER/$DATASET_NAME 20000` |
+| Local ACT smoke (20 steps) | `bash training/scripts/train_local.sh act lerobot/pusht 20` |
+| Cloud canary (500 steps) | `bash training/scripts/run_serverless.sh --debug act` |
+| Cloud ACT | `bash training/scripts/run_serverless.sh act 30000` |
+| Copy checkpoint from FS mount | `bash training/scripts/download_checkpoint.sh <job-name>` |
 | Run policy | `bash scripts/rollout.sh <checkpoint>` |
 
 Local robot work uses the `uv` venv (MPS on Apple Silicon). Real SmolVLA training uses Docker / [Nebius AI Jobs](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics), not this laptop.
@@ -68,6 +70,7 @@ the [Simulation Spec](docs/04-simulation-spec.md#30-most-important-simulation-ru
 | #   | Document                                                                          | Covers |
 | --- | --------------------------------------------------------------------------------- | ------ |
 | —   | [Participant quickstart](docs/participant_quickstart.md)                          | Install, calibrate, collect, train, deploy |
+| —   | [Train and deploy](docs/train-and-deploy.md)                                      | Local smoke, Nebius GPU, shared FS, rollout |
 | —   | [Data collection](docs/data-collection.md)                                        | Recording, dataset format, storage, H.264 video |
 | 1   | [Challenge Brief](docs/01-challenge-brief.md)                                     | Public-facing challenge document |
 | 2   | [Landing Page Copy](docs/02-landing-page-copy.md)                                 | Marketing site copy, CTAs, FAQ |

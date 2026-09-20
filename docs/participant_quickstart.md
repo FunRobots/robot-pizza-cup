@@ -24,7 +24,8 @@ This machine is macOS Apple Silicon. Robot control and data collection run in a 
 | --- | --- |
 | SO-101 follower + leader | Powered, daisy-chained, matching voltage PSU |
 | 1–2 USB webcams | Fixed mounts, 640×480 @ 30 FPS. Front is required; overhead (`top`) is optional |
-| Hugging Face account | `hf auth login` to push datasets |
+| Hugging Face account **(yours)** | `hf auth login`; set `HF_USER` |
+| Weights & Biases **(yours)** | `WANDB_API_KEY` + `WANDB_ENTITY`; optional shared project `robotpizzacup` |
 | `uv` | Already used by this repo |
 | `ffmpeg` | `brew install ffmpeg` (already typical on this Mac) |
 | Docker (optional) | Local CPU smoke test of the cloud image |
@@ -73,6 +74,13 @@ Copy station + secrets templates:
 cp hardware/station.env.example hardware/station.env
 cp .env.example .env
 ```
+
+| File | Purpose |
+| --- | --- |
+| `hardware/station.env` | USB ports, cameras, `TASK`, episode timing |
+| `.env` | `HF_USER`, `DATASET_NAME`, `HF_TOKEN`, `WANDB_*`, `FILESYSTEM_ID`, `IMAGE` / `PARENT_ID` |
+
+Full train → deploy runbook: **[Train and deploy](train-and-deploy.md)**.
 
 ---
 
@@ -153,7 +161,7 @@ hf auth login
 HF_USER=$(NO_COLOR=1 hf auth whoami | awk -F': *' 'NR==1 {print $2}')
 ```
 
-Put `HF_USER`, `DATASET_NAME`, and `TASK` in `hardware/station.env`. The task sentence is part of the dataset — **use the same words at train and rollout**.
+Put `HF_USER` and `DATASET_NAME` in `.env`. Put `TASK` in `hardware/station.env`. The task sentence is part of the dataset — **use the same words at train and rollout**.
 
 ```bash
 bash scripts/record.sh
@@ -196,97 +204,84 @@ Resume more episodes later with `--resume=true` and `--dataset.num_episodes` set
 
 ## 6. Train
 
+Local = **20-step `lerobot-train`**. GPU = pull the published image + `run_serverless.sh`. Do not train 30k steps on a Mac.
+
 ### 6a. Local smoke test (no robot, public dataset)
 
-Proves the install. On a Mac this uses MPS/CPU and should finish in a few minutes:
-
 ```bash
-bash scripts/train_local.sh act lerobot/pusht 20
+bash training/scripts/train_local.sh act lerobot/pusht 20
 ```
 
-Or via Docker (CPU, amd64 — same pattern as the [cookbook local step](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/lerobot-finetune-job#step-1--try-it-locally-first-optional-but-recommended)):
+Or Docker CPU (amd64 — same image family as cloud):
 
 ```bash
-bash scripts/run_docker.sh --rebuild act lerobot/pusht 20
+bash training/scripts/run_docker.sh --rebuild act lerobot/pusht 20
 ```
 
 `Using device: cpu` in Docker on macOS is expected.
 
-### 6b. Local ACT on your dataset (first real policy)
+### 6b. Pizza YAML on the laptop (still a smoke)
 
-ACT is the hackathon fallback: fastest, ~1 GB VRAM, good for a single pick-and-place.
+Default dataset: **`mnrozhkov/pizza_hack_v1_fake_ingredients`**. Use **your** Hub dataset via `DATASET_REPO_ID` / `HF_USER` after you record.
 
 ```bash
-source .venv/bin/activate
-set -a && source hardware/station.env && set +a
-
-uv run python -m training.run \
-  --policy act \
-  --dataset "${HF_USER}/${DATASET_NAME}" \
-  --steps 30000 \
-  --batch-size 8
+set -a && source .env && source hardware/station.env && set +a
+bash training/scripts/train_pizza.sh act 20
 ```
 
-Apple Silicon: the wrapper sets `--policy.device=mps` automatically.
+Or:
 
-### 6c. SmolVLA / longer runs in the cloud
+```bash
+uv run lerobot-train \
+  --config_path=training/policy/act/config.yaml \
+  --policy.device=mps \
+  --steps=20 \
+  --batch_size=2 \
+  --policy.push_to_hub=false
+```
 
-SmolVLA is the headline path (~50 demos, language-conditioned). Do **not** train 20k steps on this laptop.
+W&B uses **your** `WANDB_ENTITY`; shared project name `robotpizzacup`. Chart `train/loss` under Charts.
 
-1. Smoke-test the container locally (6a).
-2. Push the dataset to the Hub when you want (`hf upload` — recording does not upload).
-3. Submit a GPU job, same shape as [lerobot-finetune-job](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/lerobot-finetune-job):
+### 6c. Cloud GPU (the real policy)
+
+See **[Train in the cloud](train-and-deploy.md#cloud-training)**. `PARENT_ID` / `IMAGE` in `.env.example` are organizer defaults — switch them if you use your own Nebius project.
 
 ```bash
 set -a && source .env && set +a
-bash scripts/run_serverless.sh smolvla "${HF_USER}/${DATASET_NAME}" 20000
+bash training/scripts/run_serverless.sh --debug act     # 500 steps, 1h, CUDA + Hub + FS
+bash training/scripts/run_serverless.sh act 30000       # ACT
+bash training/scripts/run_serverless.sh smolvla 20000   # SmolVLA
 ```
 
-Or the NormaCore / parquet bundle path: [smolva-ft-norma-core](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/smolva-ft-norma-core).
+Vision-encoder flags for SmolVLA are already in `training/policy/smolvla/config.yaml`.
 
-Unfreeze the vision encoder for real-task gains (already on in `training/smolvla/config.yaml`):
-
-```text
---policy.freeze_vision_encoder=false
---policy.train_expert_only=false
-```
-
-| Profile | Policy | Batch | Steps | Where |
-| --- | --- | --- | --- | --- |
-| Install check | ACT | 2 | 20 | local MPS / Docker CPU |
-| First robot policy | ACT | 8 | 30k–80k | local GPU or L40S |
-| Headline VLA | SmolVLA | 8 | 20k | L40S / H100 |
-| Optional | Diffusion | 8 | 20k+ | L40S / H100 |
+| Profile | Policy | Batch | Steps | Where | Checkpoint |
+| --- | --- | --- | --- | --- | --- |
+| Install check | ACT | 2 | 20 | local MPS / Docker CPU | throwaway local |
+| Cloud canary | ACT | 8 | 500 | 1× L40S `--debug` | shared FS |
+| First robot policy | ACT | 8 | 30k–80k | 1× L40S | FS / Hub → rollout |
+| Headline VLA | SmolVLA | 8 | 20k | 1× L40S | same |
+| Optional | Diffusion | 8 | 20k+ | 1× L40S | same |
 
 ---
 
 ## 7. Deploy on the arm
 
-Camera key, resolution, robot id, and **task sentence** must match the dataset.
+Camera keys, resolution, `FOLLOWER_ID`, and **task sentence** must match the dataset. Details: [Deploy on the arm](train-and-deploy.md#deploy-on-arm).
 
 ```bash
-bash scripts/rollout.sh outputs/train/act/checkpoints/last/pretrained_model
+set -a && source hardware/station.env && set +a
+
+# Local training output (smoke)
+bash scripts/rollout.sh \
+  outputs/train/<run>/checkpoints/last/pretrained_model
+
+# After cloud job — FS mount or Hub
+bash training/scripts/download_checkpoint.sh <job-name>
+bash scripts/rollout.sh lerobot-outputs/<job-name>/checkpoints/last/pretrained_model
 ```
 
-Or a Hub repo:
-
-```bash
-bash scripts/rollout.sh ${HF_USER}/act_pizza_topping_v1
-```
-
-Record 10 eval episodes (policy drives the follower, no leader):
-
-```bash
-uv run lerobot-record \
-  --robot.type=so101_follower \
-  --robot.port="$FOLLOWER_PORT" \
-  --robot.id="$FOLLOWER_ID" \
-  --robot.cameras="{ front: {type: opencv, index_or_path: ${CAMERA_INDEX}, width: 640, height: 480, fps: 30}, top: {type: opencv, index_or_path: ${CAMERA_INDEX_TOP}, width: 640, height: 480, fps: 30}}" \
-  --dataset.repo_id="${HF_USER}/eval_${DATASET_NAME}" \
-  --dataset.single_task="$TASK" \
-  --dataset.num_episodes=10 \
-  --policy.path="${HF_USER}/act_pizza_topping_v1"
-```
+Record 10 eval episodes (policy drives the follower, no leader) — see [Train and deploy](train-and-deploy.md#record-eval-episodes).
 
 If ACT is below ~70% on the **same** scene you trained on, collect more consistent demos. Do not jump to π0 first.
 
@@ -307,11 +302,10 @@ If ACT is below ~70% on the **same** scene you trained on, collect more consiste
 
 ```text
 hardware/           station.env, camera notes, calibration, troubleshooting
-docs/               quickstart, data-collection (format + recording), challenge specs
-scripts/            calibrate, teleop, record, replay, train, docker, serverless, rollout
-training/           ACT / SmolVLA / Diffusion configs + Python job wrapper
+docs/               participant_quickstart, train-and-deploy, data-collection, specs
+scripts/            calibrate, teleop, record, replay, rollout
+training/           policy YAML, scripts/, docker/ (CUDA images)
 inference/          how to run a checkpoint on the follower
 evaluation/         scoring stubs
 datasets/sample/    pointers to public datasets (no large files)
-Dockerfile          CUDA image for cloud jobs
 ```

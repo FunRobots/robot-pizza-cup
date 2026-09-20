@@ -1,0 +1,27 @@
+# ACT on the hackathon pizza dataset (LeRobot 0.6.x).
+#
+# Local smoke (20 steps — do not run a full 30k on a Mac):
+#   uv run lerobot-train --config_path=training/policy/act/config.yaml \
+#     --policy.device=mps --steps=20 --batch_size=2 --policy.push_to_hub=false
+#
+# Cloud GPU:
+#   bash training/scripts/run_serverless.sh --debug act
+#   bash training/scripts/run_serverless.sh act 30000
+
+policy:
+  type: act
+  push_to_hub: false
+  device: cuda
+
+dataset:
+  repo_id: mnrozhkov/pizza_hack_v1_fake_ingredients
+
+steps: 30000
+batch_size: 8
+log_freq: 50
+save_freq: 5000
+
+wandb:
+  enable: true
+  disable_artifact: true  # scalars only; checkpoints stay on the shared filesystem
+  project: robotpizzacup

@@ -66,7 +66,7 @@ Shared:
 
 Camera **names** (`front`, `top`) are part of the dataset schema. Record, train, and rollout must use the same keys.
 
-- Adding `top` to an existing front-only dataset will fail — bump `DATASET_NAME` (e.g. `pizza_hack_v2`) and start a new dataset.
+- Adding `top` to an existing front-only dataset will fail — bump `DATASET_NAME` in `.env` (e.g. `pizza_hack_v2`) and start a new dataset.
 - A policy trained on `{front, top}` must see **both** cameras at rollout.
 
 Confirm both feeds in Rerun before recording:
