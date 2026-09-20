@@ -1,5 +1,8 @@
 # SmolVLA fine-tune from lerobot/smolvla_base (LeRobot 0.6.x).
 # GPU only — ~20k steps ≈ 4h on L40S. Cloud canary: --debug (500 steps).
+#
+# smolvla_base expects camera1/2/3. Pizza data is front + top (2 cams), so
+# rename those views and pad the third slot with empty_cameras=1.
 
 policy:
   path: lerobot/smolvla_base
@@ -8,6 +11,11 @@ policy:
   device: cuda
   freeze_vision_encoder: false
   train_expert_only: false
+  empty_cameras: 1
+
+rename_map:
+  "observation.images.front": "observation.images.camera1"
+  "observation.images.top": "observation.images.camera2"
 
 dataset:
   repo_id: mnrozhkov/pizza_hack_v1_fake_ingredients

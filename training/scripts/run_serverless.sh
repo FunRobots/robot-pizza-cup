@@ -136,7 +136,27 @@ else
     ARGS+=" --dataset.revision=${DATASET_REVISION}"
   fi
   if [[ "${POLICY_PUSH_TO_HUB:-}" == "true" ]]; then
-    ARGS+=" --policy.type=${POLICY} --policy.push_to_hub=true"
+    if [[ -z "${HF_USER:-}" ]]; then
+      echo "POLICY_PUSH_TO_HUB=true requires HF_USER (used to build the Hub repo id)." >&2
+      exit 1
+    fi
+    if [[ -z "$HF_TOKEN_VALUE" ]]; then
+      echo "POLICY_PUSH_TO_HUB=true requires HF_TOKEN (or HUGGING_FACE_HUB_TOKEN)." >&2
+      exit 1
+    fi
+    POLICY_REPO_ID="${POLICY_REPO_ID:-${HF_USER}/pizza-${POLICY}}"
+    # draccus ChoiceRegistry: any --policy.* CLI flag rebuilds the policy object, so keep `type`.
+    # Do not pass --policy.path: LeRobot rejects path+type together; SmolVLA path stays in YAML.
+    ARGS+=" --policy.type=${POLICY} --policy.push_to_hub=true --policy.repo_id=${POLICY_REPO_ID}"
+  fi
+  if [[ "$POLICY" == "smolvla" ]]; then
+    # empty_cameras is a scalar (safe on --args). Do not pass --rename_map here:
+    # Nebius strips JSON quotes, and draccus then gets a str. The map lives in YAML;
+    # --inject-file ships the local config into the job (no image rebuild).
+    if [[ "${POLICY_PUSH_TO_HUB:-}" != "true" ]]; then
+      ARGS+=" --policy.type=${POLICY}"
+    fi
+    ARGS+=" --policy.empty_cameras=1"
   fi
   if [[ "$WANDB_ENABLE" == true && -n "${WANDB_PROJECT:-}" ]]; then
     ARGS+=" --wandb.project=${WANDB_PROJECT}"
@@ -149,7 +169,13 @@ fi
 echo "Policy=$POLICY Dataset=$DATASET Steps=${STEPS:-<yaml>} Image=$IMAGE Parent=$PARENT_ID"
 echo "Job name (save this): $JOB_NAME"
 echo "Checkpoints: $OUTPUT_DIR"
+if [[ -n "${POLICY_REPO_ID:-}" ]]; then
+  echo "Hub push: ${POLICY_REPO_ID}"
+fi
 echo "Container: train_entrypoint.sh ${ARGS}"
+if [[ "$RESUME_MODE" != true ]]; then
+  echo "Inject YAML: ${CONFIG} -> /lerobot/${CONFIG}"
+fi
 if [[ "$WANDB_ENABLE" == true ]]; then
   echo "W&B: ${WANDB_ENTITY:-<set WANDB_ENTITY>}/${WANDB_PROJECT:-robotpizzacup}"
 fi
@@ -179,6 +205,10 @@ CREATE_CMD=(
 )
 if [[ -n "$ARGS" ]]; then
   CREATE_CMD+=(--args "$ARGS")
+fi
+if [[ "$RESUME_MODE" != true ]]; then
+  # Overlay image YAML with the local file (rename_map, empty_cameras, etc.).
+  CREATE_CMD+=(--inject-file "${ROOT}/${CONFIG}:/lerobot/${CONFIG}")
 fi
 
 if [[ "$PREEMPTIBLE_MODE" == true ]]; then

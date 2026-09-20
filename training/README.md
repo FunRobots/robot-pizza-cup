@@ -145,6 +145,7 @@ Optional Hub copy for the robot laptop (no FS mount on the Mac):
 
 ```bash
 POLICY_PUSH_TO_HUB=true bash training/scripts/run_serverless.sh act 30000
+# Hub repo defaults to $HF_USER/pizza-<policy> (override with POLICY_REPO_ID)
 ```
 
 Checkpoint on the FS:
@@ -163,7 +164,7 @@ uv run python -m training.eval lerobot-outputs/$RUN_NAME/checkpoints/last/pretra
 bash scripts/rollout.sh lerobot-outputs/$RUN_NAME/checkpoints/last/pretrained_model
 ```
 
-Or `bash scripts/rollout.sh "$HF_USER/<hub-repo>"` if you pushed.
+Or `bash scripts/rollout.sh "$HF_USER/pizza-smolvla"` if you pushed (default Hub id is `$HF_USER/pizza-<policy>`).
 
 ---
 
@@ -252,5 +253,5 @@ you accept lost work since the last `save_freq` and a possible silent retrain if
 | Install check | ACT | 2 | 20 | Mac MPS / Docker CPU | local `outputs/` (throwaway) |
 | Cloud canary | ACT | 8 | 500 | 1× L40S `--debug` | shared FS |
 | First robot policy | ACT | 8 | 30k–80k | 1× L40S | FS (+ optional Hub) → rollout |
-| Headline VLA | SmolVLA | 8 | 20k | 1× L40S | same |
+| Headline VLA | SmolVLA | 8 | 20k | 1× L40S | same; YAML maps `front`/`top` → `camera1`/`camera2` |
 | Optional | Diffusion | 8 | 20k+ | 1× L40S | same |

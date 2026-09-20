@@ -57,6 +57,9 @@ CMD=(
   --policy.push_to_hub=false
   --wandb.enable="$WANDB_ENABLE"
 )
+if [[ "$POLICY" == "smolvla" ]]; then
+  CMD+=(--policy.type=smolvla --policy.empty_cameras=1)
+fi
 if [[ -n "$DATASET" ]]; then
   CMD+=(--dataset.repo_id="$DATASET")
 fi

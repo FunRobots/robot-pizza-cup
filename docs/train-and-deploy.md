@@ -146,6 +146,7 @@ Optional Hub push for laptop rollout without mounting the FS:
 
 ```bash
 POLICY_PUSH_TO_HUB=true bash training/scripts/run_serverless.sh act 30000
+# Hub repo defaults to $HF_USER/pizza-<policy> (override with POLICY_REPO_ID)
 ```
 
 ### Step C — Checkpoint onto the arm
@@ -269,6 +270,7 @@ Manual scoring: [evaluation/README.md](../evaluation/README.md). Target **>70% s
 | `multiple subnets found` | Nebius tenancy | Set `SUBNET_ID` in `.env` |
 | `no preset found with name = "..."` | `--preset` does not match `--platform` | Default is `gpu-l40s-a` + `1gpu-24vcpu-96gb`; or use `gpu-l40s-d` + `1gpu-16vcpu-96gb` |
 | Policy loads, arm barely moves | Scene/camera mismatch vs training | Fix camera index, task string, reset scene |
+| `Feature mismatch` / missing `camera1` | SmolVLA base vs pizza `front`/`top` | Local YAML `rename_map` is injected into the job; no image rebuild |
 | `Checkpoint not found` | Wrong path | Use `.../checkpoints/last/pretrained_model` |
 | Teleop/comms errors | Hardware | [hardware/troubleshooting.md](../hardware/troubleshooting.md) |
 

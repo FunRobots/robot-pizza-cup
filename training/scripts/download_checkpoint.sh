@@ -5,7 +5,7 @@
 # The Mac cannot see Nebius FS until you mount it (organizer jump host, or
 # CHECKPOINT_FS_ROOT pointing at that mount). Hub alternative:
 #   POLICY_PUSH_TO_HUB=true bash training/scripts/run_serverless.sh act 30000
-#   bash scripts/rollout.sh "$HF_USER/<policy-repo>"
+#   bash scripts/rollout.sh "$HF_USER/pizza-act"   # or POLICY_REPO_ID if you overrode it
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

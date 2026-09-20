@@ -55,6 +55,9 @@ RUN_ARGS=(
   --wandb.enable=false
   --output_dir=/lerobot/outputs/smoke
 )
+if [[ "$POLICY" == "smolvla" ]]; then
+  RUN_ARGS+=(--policy.type=smolvla --policy.empty_cameras=1)
+fi
 if [[ -n "$DATASET" ]]; then
   RUN_ARGS+=(--dataset.repo_id="$DATASET")
 fi
