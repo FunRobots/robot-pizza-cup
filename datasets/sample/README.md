@@ -13,7 +13,7 @@ Do not commit large episode files here. Use Hugging Face Hub or Object Storage.
 
 ## Your station data
 
-After `bash scripts/record.sh`, local files land in:
+After `bash scripts/record.sh` from `arms/so101`, local files land in:
 
 ```text
 ~/.cache/huggingface/lerobot/${HF_USER}/${DATASET_NAME}_<timestamp>/

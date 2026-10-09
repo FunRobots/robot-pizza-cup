@@ -4,33 +4,37 @@
 
 October 30 – November 1, 2026 · [Venue / City] · 8–12 teams · 2–4 participants per team
 
-This repository is both the event documentation set **and** the starter environment for SO-101 + LeRobot: install, calibrate a leader/follower pair, collect demonstrations, smoke-test ACT locally, and fine-tune on Nebius GPU.
+Each team has two kits: a LeRobot SO-101 pair and an ElRobot pair. Pick the arm directory for the stack you are on. They do not share a Python environment.
 
-**Start here (hardware + training):** [Participant quickstart](docs/participant_quickstart.md) · **Train → deploy:** [Train and deploy](docs/train-and-deploy.md)
+| Arm | Directory | Stack |
+| --- | --- | --- |
+| LeRobot SO-101 | [arms/so101](arms/so101/README.md) | `uv` + LeRobot 0.6.1 |
+| ElRobot | [arms/elrobot](arms/elrobot/README.md) | NormaCore Station binary |
 
-Status: **Draft v0.1** — technical validation phase (see [Launch Plan](docs/05-launch-plan.md)).
+**Event-day hardware:** [Hardware and software](docs/04-hardware-and-soft.md) · **SO-101 train → deploy:** [Train and deploy](docs/train-and-deploy.md)
+
+Status: **Draft v0.1**.
 
 ---
 
-## Install (uv)
+## SO-101 (LeRobot)
 
-Requires Python **3.12+**, `uv`, and `ffmpeg` (`brew install ffmpeg` on this Mac).
+From `arms/so101`. Full steps: [arms/so101/README.md](arms/so101/README.md).
 
 ```bash
+cd arms/so101
 uv python install 3.12
 uv sync
-source .venv/bin/activate
 hf auth login
-cp hardware/station.env.example hardware/station.env
+cp station.env.example station.env
+cp ../../.env.example ../../.env
 ```
 
 That install includes LeRobot **0.6.1** with robot CLIs (`core_scripts` + `feetech`) and policy extras **ACT** (core), **SmolVLA**, **Diffusion**, and **π0 / π0.5**.
 
-Then: find ports → calibrate → teleoperate → record → train. Full commands are in the [quickstart](docs/participant_quickstart.md).
-
-| Step | Command |
+| Step | Command (from `arms/so101`) |
 | --- | --- |
-| Find USB ports | `uv run lerobot-find-port` |
+| Find USB ports | `bash scripts/list_ports.sh` |
 | Calibrate | `bash scripts/calibrate.sh follower` then `leader` |
 | Teleop | `bash scripts/teleoperate.sh` |
 | Record 50 demos | `bash scripts/record.sh` |
@@ -41,47 +45,27 @@ Then: find ports → calibrate → teleoperate → record → train. Full comman
 | Copy checkpoint from FS mount | `bash training/scripts/download_checkpoint.sh <job-name>` |
 | Run policy | `bash scripts/rollout.sh <checkpoint>` |
 
-Local robot work uses the `uv` venv (MPS on Apple Silicon). Real SmolVLA training uses Docker / [Nebius AI Jobs](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics), not this laptop.
+Local robot work uses the `uv` venv in `arms/so101` (MPS on Apple Silicon). Real SmolVLA training uses Docker / [Nebius AI Jobs](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics), not this laptop.
 
 Upstream: [LeRobot install](https://huggingface.co/docs/lerobot/installation) · [SO-101](https://huggingface.co/docs/lerobot/so101) · [real-robot IL](https://huggingface.co/docs/lerobot/il_robots)
 
----
+## ElRobot (NormaCore Station)
 
-## Key decisions (locked for planning purposes)
+No `uv sync`. Download the pinned Station binary and follow [arms/elrobot/README.md](arms/elrobot/README.md).
 
-- **Platform:** SO-101 (leader/follower teleoperation pair) + LeRobot — the standardized physical
-platform for every team and station.
-- **Headline model path:** SmolVLA (450M-parameter VLA), fine-tuned per task, ~50 demonstrations as
-a starting point.
-- **Fallback / reference baseline:** ACT — used to prove the hardware and dataset pipeline and as an
-easier diagnostic reference. The event succeeds even if teams only reach ACT-level autonomy.
-- **Vision:** one fixed front RGB camera per station (640×480 @ 30 FPS minimum). No participant-controlled camera placement in V1; wrist camera is a possible future extension, not part of the inaugural benchmark.
-- **Props:** standardized rigid, reusable pizza/topping props for scored evaluation (not real food).
-Real ingredients are reserved for the live showcase final, after benchmarking is complete.
-- **Simulation:** LeIsaac + Isaac Lab + LeRobot EnvHub, reusing existing SO-101 manipulation tasks.
-Simulation exists to de-risk the event, not to solve sim-to-real for V1 — see the priority order in
-the [Simulation Spec](docs/04-simulation-spec.md#30-most-important-simulation-rule).
-- **Event dates:** Friday, October 30 – Sunday, November 1, 2026 (48 hours).
+Upstream: [NormaCore Station](https://github.com/norma-core/norma-core/tree/main/software/station/bin/station)
 
 ---
 
 ## Document map
 
-| #   | Document                                                                          | Covers |
-| --- | --------------------------------------------------------------------------------- | ------ |
-| —   | [Participant quickstart](docs/participant_quickstart.md)                          | Install, calibrate, collect, train, deploy |
-| —   | [Train and deploy](docs/train-and-deploy.md)                                      | Local smoke, Nebius GPU, shared FS, rollout |
-| —   | [Data collection](docs/data-collection.md)                                        | Recording, dataset format, storage, H.264 video |
-| 1   | [Challenge Brief](docs/01-challenge-brief.md)                                     | Public-facing challenge document |
-| 2   | [Landing Page Copy](docs/02-landing-page-copy.md)                                 | Marketing site copy, CTAs, FAQ |
-| 3   | [Technical Competition Spec](docs/03-technical-spec.md)                           | Hardware, vision, workspace, evaluation |
-| 4   | [Simulation Spec](docs/04-simulation-spec.md)                                     | Simulation stack |
-| 5   | [Launch Plan](docs/05-launch-plan.md)                                             | 11-phase timeline |
-| 6   | [Team Structure](docs/06-team-structure.md)                                       | Organizer roles |
-| 7   | [Marketing Plan](docs/07-marketing-plan.md)                                       | Audience and campaign |
-| 8   | [Media Specification](docs/08-media-spec.md)                                      | Creative direction |
-| 9   | [References & Next Steps](docs/09-references-and-next-steps.md)                   | Technical references |
-| 10  | [Scope Validation & Global Vision](docs/10-scope-validation-and-global-vision.md) | Comparable events and roadmap |
+| Document | Covers |
+| --- | --- |
+| [SO-101 setup](arms/so101/README.md) | Install, calibrate, collect, train, deploy |
+| [ElRobot setup](arms/elrobot/README.md) | Station install and calibration |
+| [Hardware and software](docs/04-hardware-and-soft.md) | Kit, clamp, wire, milestone checks |
+| [Train and deploy](docs/train-and-deploy.md) | SO-101 local smoke, Nebius GPU, rollout |
+| [Data collection](docs/data-collection.md) | SO-101 recording, dataset format, H.264 video |
 
 ---
 
@@ -90,4 +74,4 @@ the [Simulation Spec](docs/04-simulation-spec.md#30-most-important-simulation-ru
 - **Format:** Teleoperate → Collect Data → Fine-Tune → Deploy → Compete
 - **Three challenges:** Precision Topping (30 pts) · Recipe Assembly (40 pts) · Mystery Pizza (30 pts) — 100 pts total
 - **Primary KPI:** ≥70% of participating teams successfully deploy one autonomous learned policy to a real robot
-- **Critical path:** technical validation, not marketing — no large public registration push until teleoperation → dataset → training → autonomous deployment has worked on the intended hardware at least once (see Phase 1 in the Launch Plan)
+- **Platforms:** each team uses both the SO-101 kit (LeRobot) and the ElRobot kit (NormaCore Station)

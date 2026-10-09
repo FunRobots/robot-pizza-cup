@@ -2,7 +2,9 @@
 
 End-to-end guide: fine-tune a policy on a HuggingFace dataset, persist the checkpoint (local or cloud), and run it on the SO-101 follower.
 
-**Prerequisites:** hardware calibrated and a dataset on the Hub (or use the shared baseline `mnrozhkov/pizza_hack_v1_fake_ingredients`). For recording, see [Data collection](data-collection.md) and [Participant quickstart](participant_quickstart.md) (sections 1–5).
+**Prerequisites:** SO-101 calibrated and a dataset on the Hub (or use the shared baseline `mnrozhkov/pizza_hack_v1_fake_ingredients`). For recording, see [Data collection](data-collection.md) and [SO-101 setup](../arms/so101/README.md).
+
+Run the commands on this page from `arms/so101`. That directory is the LeRobot `uv` project. Secrets stay in the repo-root `.env`.
 
 ## Contents
 
@@ -24,11 +26,11 @@ End-to-end guide: fine-tune a policy on a HuggingFace dataset, persist the check
 
 | Requirement | Purpose | Setup |
 | --- | --- | --- |
-| Python 3.12 + `uv` | Local robot + `lerobot-train` smoke | `uv sync` (repo root) |
+| Python 3.12 + `uv` | Local robot + `lerobot-train` smoke | `uv sync` in `arms/so101` |
 | `ffmpeg` | Video encoding during record | `brew install ffmpeg` |
 | Hugging Face account **(yours)** | Datasets / optional policy push | `hf auth login`; set `HF_USER` |
-| `hardware/station.env` | Ports, cameras, task, episode timing | Copy from `hardware/station.env.example` |
-| `.env` | Secrets (HF, W&B, Nebius FS) | Copy from `.env.example` |
+| `arms/so101/station.env` | Ports, cameras, task, episode timing | Copy from `arms/so101/station.env.example` |
+| `.env` | Secrets (HF, W&B, Nebius FS) | Copy from repo-root `.env.example` |
 | Docker (optional) | CPU smoke of the cloud image | Docker Desktop |
 | [Nebius CLI](https://docs.nebius.com/cli/install) | Submit GPU jobs | `nebius` auth; `PARENT_ID` organizer default or **your** project |
 | Weights & Biases **(yours)** | Training metrics | `WANDB_API_KEY` + `WANDB_ENTITY`; project `robotpizzacup` |
@@ -37,13 +39,14 @@ End-to-end guide: fine-tune a policy on a HuggingFace dataset, persist the check
 
 | File | Gitignored | Contains |
 | --- | --- | --- |
-| `hardware/station.env` | yes | `FOLLOWER_PORT`, `CAMERA_INDEX`, `TASK`, episode timing |
-| `.env` | yes | `HF_TOKEN`, `HF_USER`, `DATASET_NAME`, `WANDB_*`, `FILESYSTEM_ID`, `SUBNET_ID`, `IMAGE`, `PARENT_ID` |
+| `arms/so101/station.env` | yes | `FOLLOWER_PORT`, `CAMERA_INDEX`, `TASK`, episode timing |
+| repo-root `.env` | yes | `HF_TOKEN`, `HF_USER`, `DATASET_NAME`, `WANDB_*`, `FILESYSTEM_ID`, `SUBNET_ID`, `IMAGE`, `PARENT_ID` |
 
-Load both before training:
+From `arms/so101`, training scripts load the repo-root `.env` themselves. To load both in a shell:
 
 ```bash
-set -a && source .env && source hardware/station.env && set +a
+cd arms/so101
+set -a && source ../../.env && source station.env && set +a
 ```
 
 ### Shared filesystem (cloud checkpoints)
@@ -79,7 +82,7 @@ Override with `DATASET_REPO_ID` or `HF_USER` / `DATASET_NAME` in `.env`.
 **Smoke tests only (20 steps).** Full ACT (30k) and SmolVLA (20k) are cloud GPU jobs — do not train those on a Mac.
 
 ```bash
-set -a && source .env && source hardware/station.env && set +a
+cd arms/so101
 
 # Public pusht, 20 steps
 bash training/scripts/train_local.sh act lerobot/pusht 20
@@ -118,7 +121,7 @@ Recommended for **ACT 30k** and required for **SmolVLA 20k**. Pull the published
 
 ### Step A — Image
 
-Organizer default: `IMAGE=mnrozhkov/pizza-robo-hack:latest` (linux/amd64, public). Details: [training/README.md — Docker image](../training/README.md#docker-image).
+Organizer default: `IMAGE=mnrozhkov/pizza-robo-hack:latest` (linux/amd64, public). Details: [training/README.md — Docker image](../arms/so101/training/README.md#docker-image).
 
 ```bash
 # Organizers / custom forks
@@ -128,7 +131,7 @@ bash training/scripts/build_docker.sh --push
 ### Step B — Submit (only cloud entry)
 
 ```bash
-set -a && source .env && set +a
+cd arms/so101
 
 # Canary: 500 steps, 1h timeout, still mounts the filesystem
 bash training/scripts/run_serverless.sh --debug act
@@ -167,7 +170,7 @@ export RUN_NAME=pizza-<hf-user>-act-...   # original job name
 bash training/scripts/run_serverless.sh --resume act
 ```
 
-Preemptible VMs and `job restart` caveats: [training/README.md](../training/README.md#preemptible--restart-usually-skip-this).
+Preemptible VMs and `job restart` caveats: [training/README.md](../arms/so101/training/README.md#preemptible--restart-usually-skip-this).
 
 <a id="later-job-cold-start"></a>
 
@@ -195,13 +198,14 @@ Do **not** `docker load` a fat tarball inside the job. Check that the mounted ve
 
 | Must match training data | Where to check |
 | --- | --- |
-| Camera keys (`front`, `top`) | `hardware/station.env` → `scripts/cameras.sh` |
+| Camera keys (`front`, `top`) | `arms/so101/station.env` → `arms/so101/scripts/cameras.sh` |
 | Resolution 640×480 @ 30 FPS | `CAMERA_WIDTH`, `CAMERA_HEIGHT`, `CAMERA_FPS` |
 | `FOLLOWER_ID` (calibration) | Same id used in record / calibrate |
 | Task sentence | `TASK` in `station.env` — **exact same words** as recording |
 
 ```bash
-set -a && source hardware/station.env && set +a
+cd arms/so101
+set -a && source station.env && set +a
 ```
 
 ### Run the policy
@@ -237,7 +241,8 @@ Use real-time chunking (RTC) — see [inference/README.md](../inference/README.m
 Policy drives the follower (no leader), 10 episodes:
 
 ```bash
-set -a && source .env && source hardware/station.env && set +a
+cd arms/so101
+set -a && source ../../.env && source station.env && set +a
 # shellcheck source=cameras.sh
 source scripts/cameras.sh
 POLICY=lerobot-outputs/<run-name>/checkpoints/last/pretrained_model
@@ -272,7 +277,7 @@ Manual scoring: [evaluation/README.md](../evaluation/README.md). Target **>70% s
 | Policy loads, arm barely moves | Scene/camera mismatch vs training | Fix camera index, task string, reset scene |
 | `Feature mismatch` / missing `camera1` | SmolVLA base vs pizza `front`/`top` | Local YAML `rename_map` is injected into the job; no image rebuild |
 | `Checkpoint not found` | Wrong path | Use `.../checkpoints/last/pretrained_model` |
-| Teleop/comms errors | Hardware | [hardware/troubleshooting.md](../hardware/troubleshooting.md) |
+| Teleop/comms errors | Hardware | [troubleshooting.md](../arms/so101/troubleshooting.md) |
 
 ---
 
@@ -288,4 +293,4 @@ Manual scoring: [evaluation/README.md](../evaluation/README.md). Target **>70% s
 | Headline VLA | SmolVLA | 20k | 1× L40S | same |
 | Optional | Diffusion | 20k+ | 1× L40S | same |
 
-More detail: [training/README.md](../training/README.md). Cloud pattern: [lerobot-finetune-job](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/lerobot-finetune-job).
+More detail: [training/README.md](../arms/so101/training/README.md). Cloud pattern: [lerobot-finetune-job](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/lerobot-finetune-job).

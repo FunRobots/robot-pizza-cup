@@ -2,10 +2,10 @@
 
 Run a trained policy on the SO-101 follower (no leader). Full checklist and cloud download steps: **[Train and deploy — Deploy on the arm](../docs/train-and-deploy.md#deploy-on-arm)**.
 
-`scripts/rollout.sh` builds the camera dict from `hardware/station.env` — camera keys (`front`, `top`), resolution, FPS, and `TASK` must match recording.
+`arms/so101/scripts/rollout.sh` builds the camera dict from `arms/so101/station.env` — camera keys (`front`, `top`), resolution, FPS, and `TASK` must match recording.
 
 ```bash
-set -a && source hardware/station.env && set +a
+cd arms/so101
 
 # Local checkpoint
 bash scripts/rollout.sh \
@@ -19,7 +19,8 @@ bash scripts/rollout.sh \
 For slow VLAs (SmolVLA, π0) on a laptop, add RTC:
 
 ```bash
-set -a && source hardware/station.env && set +a
+cd arms/so101
+set -a && source station.env && set +a
 # shellcheck source=cameras.sh
 source scripts/cameras.sh
 

@@ -1,5 +1,6 @@
 rerun-out/
 .venv/
+arms/so101/.venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -9,7 +10,10 @@ __pycache__/
 .env
 .env.*
 !.env.example
-hardware/station.env
+arms/so101/station.env
+arms/elrobot/station
+arms/elrobot/station.yaml
+arms/elrobot/station_data/
 
 outputs/
 lerobot-outputs/

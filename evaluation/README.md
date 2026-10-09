@@ -1,11 +1,11 @@
 # Evaluation stubs
 
-Official scoring scripts land here after Gate E in the [technical spec](../docs/03-technical-spec.md).
+Scoring scripts are not in this repo yet.
 
-Until then, use physical success rate:
+Until then, use physical success rate on the SO-101 follower:
 
 1. Reset the scene the same way every episode.
-2. Run `bash scripts/rollout.sh <policy>` for 10 episodes.
+2. From `arms/so101`, run `bash scripts/rollout.sh <policy>` for 10 episodes.
 3. Score success / fail by hand.
 4. Compare to a teleoperated baseline.
 

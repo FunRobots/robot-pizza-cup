@@ -2,7 +2,7 @@
 
 How to record SO-101 leader/follower demonstrations into a LeRobot dataset for training.
 
-**Prerequisites:** install, ports, calibration, and teleop are covered in the [Participant quickstart](participant_quickstart.md). Complete those first.
+**Prerequisites:** install, ports, calibration, and teleop are covered in the [SO-101 setup](../arms/so101/README.md). Complete those first. Commands below run from `arms/so101`.
 
 Official LeRobot references:
 
@@ -21,14 +21,15 @@ Official LeRobot references:
 ## 1. Configure env files
 
 ```bash
-cp hardware/station.env.example hardware/station.env
-cp .env.example .env
+cd arms/so101
+cp station.env.example station.env
+cp ../../.env.example ../../.env
 ```
 
 | File | Contains |
 | --- | --- |
-| `hardware/station.env` | Ports, camera indexes, calibration ids, `TASK`, episode timing |
-| `.env` | `HF_USER`, `DATASET_NAME`, `HF_TOKEN`, W&B, Nebius / training |
+| `arms/so101/station.env` | Ports, camera indexes, calibration ids, `TASK`, episode timing |
+| repo-root `.env` | `HF_USER`, `DATASET_NAME`, `HF_TOKEN`, W&B, Nebius / training |
 
 Set these before recording:
 
@@ -122,7 +123,7 @@ Motor calibration for each arm id:
 ~/.cache/huggingface/lerobot/calibration/
 ```
 
-Keyed by `FOLLOWER_ID` and `LEADER_ID`. Details: [hardware/calibration/README.md](../hardware/calibration/README.md).
+Keyed by `FOLLOWER_ID` and `LEADER_ID`. Details: [calibration/README.md](../arms/so101/calibration/README.md).
 
 ---
 
@@ -156,7 +157,8 @@ DATASET_NAME=pizza_hack_v1
 Then record as usual:
 
 ```bash
-set -a && source .env && source hardware/station.env && set +a
+cd arms/so101
+set -a && source ../../.env && source station.env && set +a
 bash scripts/record.sh
 ```
 
@@ -317,4 +319,4 @@ Before training, confirm:
 
 Collect more consistent data before switching models if ACT success is below ~70% on the same scene.
 
-Troubleshooting: [hardware/troubleshooting.md](../hardware/troubleshooting.md).
+Troubleshooting: [troubleshooting.md](../arms/so101/troubleshooting.md).

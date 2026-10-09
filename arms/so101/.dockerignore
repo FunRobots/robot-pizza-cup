@@ -1,0 +1,13 @@
+.venv
+.git
+.gitignore
+outputs
+lerobot-outputs
+scripts
+calibration
+*.md
+.env
+.env.*
+station.env
+**/__pycache__
+**/.DS_Store
