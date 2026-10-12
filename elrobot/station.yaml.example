@@ -1,4 +1,4 @@
-# Copy to station.yaml next to the station binary, or pass: station --config station.yaml
+# Copy to norma-core/bin/station.yaml (next to the station binary), or pass: station --config station.yaml
 # First run of Station also writes a default station.yaml if none exists.
 # Do not commit a filled station.yaml (calibration and bus serials are local).
 
