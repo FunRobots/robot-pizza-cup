@@ -1,0 +1,23 @@
+# Copy to norma-core/bin/station.yaml (next to the station binary), or pass: station --config station.yaml
+# First run of Station also writes a default station.yaml if none exists.
+# Do not commit a filled station.yaml (calibration and bus serials are local).
+
+drivers:
+  # ST3215 servo bus (ElRobot leader and follower)
+  st3215:
+    enabled: true
+    current-threshold: 100     # Current limit for safety (mA)
+    deadband: 20               # Minimum movement threshold
+    motor-current-thresholds:  # Per-motor overrides
+      8: 40
+      5: 60
+
+  # System resource monitoring
+  system-info: true
+
+  # USB video capture. ElRobot cameras show up here, not in lerobot-find-cameras.
+  usb-video:
+    enabled: true
+    resolution: auto      # "auto" or "<width>x<height>", e.g. "1280x720"
+    resize_target: 224    # Resize shortest dimension of stored frames to 224px
+    frame-skip: 0         # Drop N frames after each kept frame; 0 records every frame

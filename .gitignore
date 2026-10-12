@@ -1,5 +1,5 @@
-rerun-out/
 .venv/
+so101/.venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -9,12 +9,22 @@ __pycache__/
 .env
 .env.*
 !.env.example
-hardware/station.env
+so101/station.env
+elrobot/norma-core
+elrobot/vendor/
+elrobot/elrobot.env
+elrobot/station
+elrobot/station.yaml
+elrobot/station_data/
 
+so101/outputs/
+so101/lerobot-outputs/
+so101/rerun-out/
 outputs/
 lerobot-outputs/
-datasets/*.parquet
-datasets/sample/*.mp4
+rerun-out/
+data/*
+!data/.gitignore
 *.zip
 *.safetensors
 
