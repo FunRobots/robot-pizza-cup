@@ -1,6 +1,6 @@
 # Source repo config. Order: repo-root .env (identity, cloud, datasets) then station.env (hardware).
 # shellcheck shell=bash
-REPO="$(cd "${ROOT}/../.." && pwd)"
+REPO="$(cd "${ROOT}/.." && pwd)"
 if [[ -f "${REPO}/.env" ]]; then
   set -a
   # shellcheck disable=SC1091

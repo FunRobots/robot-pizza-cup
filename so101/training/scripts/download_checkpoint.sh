@@ -11,7 +11,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-REPO="$(cd "${ROOT}/../.." && pwd)"
+REPO="$(cd "${ROOT}/.." && pwd)"
 if [[ -f "${REPO}/.env" ]]; then
   set -a
   # shellcheck disable=SC1091

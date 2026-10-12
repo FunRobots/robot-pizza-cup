@@ -132,4 +132,4 @@ uv run rerun "$HOME/.cache/huggingface/lerobot/${HF_USER}/${DATASET_NAME}_<times
 # or: bash scripts/viz_dataset.sh
 ```
 
-Live Rerun during `record.sh` freezes the camera on purpose (`static=True`). See [docs/data-collection.md](../../docs/data-collection.md#6-inspect-and-replay).
+Live Rerun during `record.sh` freezes the camera on purpose (`static=True`). See [data collection](data-collection.md#so-101--inspect-and-replay).

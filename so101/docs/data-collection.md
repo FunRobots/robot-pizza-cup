@@ -1,8 +1,6 @@
-# Data collection guide
+Commands below run from `so101`. ElRobot recordings use a different format: [ElRobot data collection](../../elrobot/docs/data-collection.md).
 
-How to record SO-101 leader/follower demonstrations into a LeRobot dataset for training.
-
-**Prerequisites:** install, ports, calibration, and teleop are covered in the [SO-101 setup](../arms/so101/README.md). Complete those first. Commands below run from `arms/so101`.
+# SO-101 (LeRobot)
 
 Official LeRobot references:
 
@@ -16,19 +14,17 @@ Official LeRobot references:
 | What makes a good dataset | [LeRobot community datasets](https://huggingface.co/blog/lerobot-datasets) |
 | LeRobotDataset v3.0 format | [lerobot-datasets-v3](https://huggingface.co/blog/lerobot-datasets-v3) |
 
----
-
-## 1. Configure env files
+## SO-101 — Configure env files
 
 ```bash
-cd arms/so101
+cd so101
 cp station.env.example station.env
-cp ../../.env.example ../../.env
+cp ../.env.example ../.env
 ```
 
 | File | Contains |
 | --- | --- |
-| `arms/so101/station.env` | Ports, camera indexes, calibration ids, `TASK`, episode timing |
+| `so101/station.env` | Ports, camera indexes, calibration ids, `TASK`, episode timing |
 | repo-root `.env` | `HF_USER`, `DATASET_NAME`, `HF_TOKEN`, W&B, Nebius / training |
 
 Set these before recording:
@@ -57,9 +53,7 @@ HF_USER=$(NO_COLOR=1 hf auth whoami | awk -F': *' 'NR==1 {print $2}')
 
 **Organization** — set `HF_USER` to the org slug (e.g. `RobotPizzaCup` for [Robot Pizza Cup](https://huggingface.co/RobotPizzaCup)). You must be an org member with permission to create datasets. Datasets appear at `https://huggingface.co/datasets/RobotPizzaCup/<name>`.
 
----
-
-## 2. Record
+## SO-101 — Record
 
 ```bash
 bash scripts/record.sh
@@ -103,9 +97,7 @@ uv run lerobot-record \
 
 Each new recording session gets a **timestamp suffix** on `repo_id` (e.g. `pizza_topping_v1_20260919_145422`). Use `--dataset.no_stamp=true` on the CLI to keep a fixed name, or pass `--dataset.root` when resuming.
 
----
-
-## 3. Where data is stored (local)
+## SO-101 — Where data is stored (local)
 
 Demonstration datasets on disk:
 
@@ -113,7 +105,38 @@ Demonstration datasets on disk:
 ~/.cache/huggingface/lerobot/${HF_USER}/${DATASET_NAME}_<timestamp>/
 ```
 
-Large episode files are **not** committed to this git repo. See [datasets/sample/README.md](../datasets/sample/README.md) for pointers.
+Large episode files are **not** committed to this git repo.
+
+### Sample and smoke-test datasets
+
+Do not commit large episode files to git. Use Hugging Face Hub or object storage.
+
+| Dataset | Use |
+| --- | --- |
+| [`lerobot/pusht`](https://huggingface.co/datasets/lerobot/pusht) | Tiny ACT smoke test (local CPU / Docker) |
+| [`lerobot/svla_so100_pickplace`](https://huggingface.co/datasets/lerobot/svla_so100_pickplace) | SmolVLA paper-style pick-place reference |
+
+After `bash scripts/record.sh`, local files land in:
+
+```text
+~/.cache/huggingface/lerobot/${HF_USER}/${DATASET_NAME}_<timestamp>/
+```
+
+LeRobot appends a timestamp to each new recording session unless you pass `--dataset.no_stamp=true`. Example:
+
+```text
+~/.cache/huggingface/lerobot/your-hf-username/pizza_topping_v1_20260919_145422/
+```
+
+Hub URL (after upload):
+
+```text
+https://huggingface.co/datasets/${HF_USER}/${DATASET_NAME}_<timestamp>
+```
+
+Videos are encoded as **H.264** by `scripts/record.sh` so they play in QuickTime on macOS. LeRobot’s default AV1 codec is smaller but often won’t open in Finder — see [streaming video encoding](https://huggingface.co/docs/lerobot/streaming_video_encoding).
+
+Visualize any LeRobot dataset: https://huggingface.co/spaces/lerobot/visualize_dataset
 
 ### Calibration (separate from episodes)
 
@@ -123,11 +146,9 @@ Motor calibration for each arm id:
 ~/.cache/huggingface/lerobot/calibration/
 ```
 
-Keyed by `FOLLOWER_ID` and `LEADER_ID`. Details: [calibration/README.md](../arms/so101/calibration/README.md).
+Keyed by `FOLLOWER_ID` and `LEADER_ID`. Setup procedure: [SO-101 README — Calibrate](../README.md#3-calibrate).
 
----
-
-## 4. Upload to Hugging Face Hub
+## SO-101 — Upload to Hugging Face Hub
 
 `scripts/record.sh` saves **locally only** (`--dataset.push_to_hub=false`). LeRobot’s default is to upload; this repo turns that off. Push later with `hf upload` when you choose. See [il_robots — dataset upload](https://huggingface.co/docs/lerobot/il_robots#dataset-upload).
 
@@ -157,8 +178,8 @@ DATASET_NAME=pizza_hack_v1
 Then record as usual:
 
 ```bash
-cd arms/so101
-set -a && source ../../.env && source station.env && set +a
+cd so101
+set -a && source ../.env && source station.env && set +a
 bash scripts/record.sh
 ```
 
@@ -227,9 +248,7 @@ Works the same for `RobotPizzaCup/...`.
 | Dataset on Hub under wrong namespace | Set `HF_USER` in `.env` before recording, or `hf upload` to the correct `org/name` |
 | Replay/train can't find data | Use full repo id including `_<timestamp>`, or `--dataset.root` pointing at the local folder |
 
----
-
-## 5. Dataset format (LeRobot v3.0)
+## SO-101 — Dataset format (LeRobot v3.0)
 
 Each recording session produces a **LeRobotDataset** (codebase version `v3.0`). Layout on disk:
 
@@ -265,9 +284,7 @@ Recorded at **30 FPS** (`640×480`):
 
 Joint positions live in **parquet**; camera frames are stored as **H.264 MP4** with frame references in parquet. Full format description: [LeRobot dataset docs](https://huggingface.co/docs/lerobot/il_robots#1-data-storage).
 
----
-
-## 6. Inspect and replay
+## SO-101 — Inspect and replay
 
 Live Rerun during `record.sh` shows joints moving but **freezes the camera**. LeRobot logs images as `static=True` (RAM). The MP4s on disk are the real video. Preview them after the session.
 
@@ -305,9 +322,7 @@ Uses the dataset at `~/.cache/huggingface/lerobot/${HF_USER}/${DATASET_NAME}` �
 
 LeRobot replay docs: [Replay an episode](https://huggingface.co/docs/lerobot/il_robots#replay-an-episode).
 
----
-
-## 7. Data quality checklist
+## SO-101 — Data quality checklist
 
 Before training, confirm:
 
@@ -319,4 +334,4 @@ Before training, confirm:
 
 Collect more consistent data before switching models if ACT success is below ~70% on the same scene.
 
-Troubleshooting: [troubleshooting.md](../arms/so101/troubleshooting.md).
+Troubleshooting: [troubleshooting.md](troubleshooting.md).

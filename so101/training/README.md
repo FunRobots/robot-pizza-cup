@@ -2,9 +2,9 @@
 
 Fine-tune LeRobot policies with `lerobot-train` on the **pizza Hub dataset**. Local runs are **20-step smokes**. Full GPU training is a Nebius AI Job; checkpoints land on a **shared POSIX filesystem**.
 
-**Arm rollout after training:** [Train and deploy](../../docs/train-and-deploy.md)
+**Arm rollout after training:** [Train and deploy](../docs/train-and-deploy.md)
 
-Run the commands below from `arms/so101`. Hugging Face, W&B, and Nebius settings live in the repo-root `.env` (`../../.env`). The scripts load that file themselves.
+Run the commands below from `so101`. Hugging Face, W&B, and Nebius settings live in the repo-root `.env` (`../.env` from `so101`; scripts load it automatically). The scripts load that file themselves.
 
 Do these steps **in order**. Never run 30k steps on a Mac.
 
@@ -30,8 +30,8 @@ cp .env.example .env
 # HF_TOKEN, HF_USER, DATASET_NAME, DATASET_REPO_ID, DATASET_REVISION
 # WANDB_API_KEY, WANDB_ENTITY (yours); WANDB_PROJECT=robotpizzacup
 # FILESYSTEM_ID, SUBNET_ID, IMAGE, PARENT_ID
-cd arms/so101
-set -a && source ../../.env && set +a
+cd so101
+set -a && source ../.env && set +a
 ```
 
 `FILESYSTEM_ID` is required for any cloud submit (POSIX FS, not an S3 bucket). `PARENT_ID` and `IMAGE` in `.env.example` are organizer defaults — override for your own Nebius project.
@@ -43,8 +43,8 @@ Join W&B project `robotpizzacup` if you want the shared board. Metrics are scala
 App image is `FROM $DEPS_IMAGE`. Hub must have `:deps` **before** `:latest` (or a local `:deps` must exist).
 
 ```bash
-cd /path/to/pizza-robo-hack/arms/so101
-set -a && source ../../.env && set +a
+cd /path/to/pizza-robo-hack/so101
+set -a && source ../.env && set +a
 
 # Once (torch / lerobot layer — slow). Skip if :deps is already on Hub.
 bash training/scripts/build_docker.sh --target deps --push
@@ -71,7 +71,7 @@ Participants should **pull** the published image unless they change dependencies
 ## 2. Local smoke (pizza, 20 steps)
 
 ```bash
-set -a && source ../../.env && set +a
+set -a && source ../.env && set +a
 uv run lerobot-train --help
 bash training/scripts/train_pizza.sh act 20
 ```
@@ -92,7 +92,7 @@ uv run lerobot-train \
 ## 3. Docker CPU smoke (same amd64 image)
 
 ```bash
-set -a && source ../../.env && set +a
+set -a && source ../.env && set +a
 IMAGE=pizza-robo-hack:dev bash training/scripts/run_docker.sh --rebuild act 20
 ```
 
@@ -103,7 +103,7 @@ Uses `training/policy/act/config.yaml` (pizza dataset). `Using device: cpu` on m
 Validates the Nebius spec. Creates nothing.
 
 ```bash
-set -a && source ../../.env && set +a
+set -a && source ../.env && set +a
 bash training/scripts/run_serverless.sh --dry-run --debug act
 ```
 

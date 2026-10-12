@@ -18,8 +18,6 @@ Official references:
 
 Robot control and data collection run in a local `uv` venv (MPS on Apple Silicon). Real training runs in Docker / Nebius GPU jobs (CUDA).
 
-Event-day clamp and wiring: [Hardware and software](../../docs/04-hardware-and-soft.md).
-
 ---
 
 ## 0. What you need
@@ -39,10 +37,10 @@ Event-day clamp and wiring: [Hardware and software](../../docs/04-hardware-and-s
 
 ## 1. Install (local uv environment)
 
-From **this directory** (`arms/so101`):
+From **this directory** (`so101`):
 
 ```bash
-cd arms/so101
+cd so101
 uv python install 3.12
 uv sync
 hf auth login
@@ -76,23 +74,23 @@ Copy station + secrets templates. Secrets stay at the **repo root**. Ports stay 
 
 ```bash
 cp station.env.example station.env
-cp ../../.env.example ../../.env
+cp ../.env.example ../.env
 ```
 
 | File | Purpose |
 | --- | --- |
-| `arms/so101/station.env` | USB ports, cameras, `TASK`, episode timing |
+| `so101/station.env` | USB ports, cameras, `TASK`, episode timing |
 | repo-root `.env` | `HF_USER`, `DATASET_NAME`, `HF_TOKEN`, `WANDB_*`, `FILESYSTEM_ID`, `IMAGE` / `PARENT_ID` |
 
-Scripts load `../../.env`, then `station.env`.
+Scripts load `../.env`, then `station.env`.
 
-Full train → deploy runbook: **[Train and deploy](../../docs/train-and-deploy.md)**.
+Full train → deploy runbook: **[Train and deploy](docs/train-and-deploy.md)**.
 
 ---
 
 ## 2. Find USB ports and set motor IDs (once per arm)
 
-Connect **one** MotorBus USB cable to the computer (and power the arm), then from `arms/so101`:
+Connect **one** MotorBus USB cable to the computer (and power the arm), then from `so101`:
 
 ```bash
 bash scripts/list_ports.sh
@@ -112,13 +110,86 @@ uv run lerobot-setup-motors --teleop.type=so101_leader --teleop.port="$LEADER_PO
 
 Skip this if the kit was already ID'd. Pre-assembled event arms already have motor IDs.
 
-Find the webcams (index `0` is often FaceTime on a Mac):
+Set `CAMERA_INDEX` (front) and optionally `CAMERA_INDEX_TOP` (overhead) in `station.env` — see [Camera setup](#camera-setup) (next section).
+
+---
+
+## Camera setup
+
+Hackathon V1 scoring uses a **fixed front RGB camera**. You can also record a second **overhead (`top`)** stream at the same time; both become part of the dataset schema.
+
+| Setting | Value |
+| --- | --- |
+| Resolution | 640 × 480 minimum |
+| FPS | 30 |
+| Mount | fixed, same viewpoint on every station |
+| Front camera | required (`observation.images.front`) |
+| Overhead camera | optional (`observation.images.top`) |
+| Wrist camera | not part of V1 scoring |
+
+### Find camera indexes
 
 ```bash
 uv run python scripts/list_cameras.py
 ```
 
-Set `CAMERA_INDEX` (front) and optionally `CAMERA_INDEX_TOP` (overhead) in `station.env`. Framing notes: [camera_setup.md](camera_setup.md).
+This prints every OpenCV index that opens and writes a JPEG to `/tmp/lerobot-cameras/index-N.jpg`. Open those stills to tell FaceTime vs workspace vs overhead.
+
+On macOS, OpenCV indexes are **0 … N−1** for the N devices in `system_profiler SPCameraDataType`. There is no index `2` until a third camera actually appears. ffmpeg’s `[2] Capture screen 0` is a screen grab, not a webcam.
+
+Index `0` is often the built-in FaceTime camera, but it can swap with a USB cam. Always check the preview JPEGs. Prefer USB webcams for `front` and `top`; never record FaceTime.
+
+Set indexes from the preview JPEGs, not by guessing the next integer:
+
+```bash
+CAMERA_INDEX=0          # USB workspace (example)
+CAMERA_INDEX_TOP=       # empty until a second USB camera appears in system_profiler
+```
+
+Leave `CAMERA_INDEX_TOP` empty for a single front camera.
+
+Quit Zoom, Photo Booth, and Chrome before listing or recording — they hold the webcam exclusive.
+
+### Framing checklist
+
+You should be able to do the task **from the camera images alone**:
+
+**Front**
+
+- pizza disk fully in frame
+- topping pickup zone fully in frame
+- gripper visible throughout the motion
+
+**Top** (if used)
+
+- full table / pizza / pickup zone from above
+- arm does not occlude the pizza for the whole place motion
+
+Shared:
+
+- no motion blur at 30 FPS
+- lighting is diffuse and stable (no moving shadows)
+- do not move either camera after recording starts
+
+### LeRobot camera dict
+
+`scripts/record.sh`, `teleoperate.sh`, and `rollout.sh` expand `station.env` into:
+
+```text
+{ front: {type: opencv, index_or_path: <CAMERA_INDEX>, width: 640, height: 480, fps: 30},
+  top:   {type: opencv, index_or_path: <CAMERA_INDEX_TOP>, width: 640, height: 480, fps: 30} }
+```
+
+Camera **names** (`front`, `top`) are part of the dataset schema. Record, train, and rollout must use the same keys.
+
+- Adding `top` to an existing front-only dataset will fail — bump `DATASET_NAME` in `.env` (e.g. `pizza_hack_v2`) and start a new dataset.
+- A policy trained on `{front, top}` must see **both** cameras at rollout.
+
+Confirm both feeds in Rerun before recording:
+
+```bash
+bash scripts/teleoperate.sh
+```
 
 ---
 
@@ -126,16 +197,33 @@ Set `CAMERA_INDEX` (front) and optionally `CAMERA_INDEX_TOP` (overhead) in `stat
 
 The `id` is the calibration key. Reuse it everywhere.
 
+LeRobot stores SO-101 calibration under `~/.cache/huggingface/lerobot/calibration/`, keyed by `--robot.id` / `--teleop.id`.
+
+Reuse the same ids (`FOLLOWER_ID`, `LEADER_ID` in `station.env`) for:
+
+- `lerobot-calibrate`
+- `lerobot-teleoperate`
+- `lerobot-record`
+- `lerobot-replay`
+- `lerobot-rollout`
+
+If you change the id, you are starting a new robot identity and must recalibrate.
+
 ```bash
 bash scripts/calibrate.sh follower
 bash scripts/calibrate.sh leader
 ```
 
-For each arm: move to mid-range, press Enter, sweep **every joint through its full range**.
+**Procedure**
+
+1. Power both arms. Confirm every motor LED is a steady red from gripper to base.
+2. Source `station.env`.
+3. Run `bash scripts/calibrate.sh follower`, then `bash scripts/calibrate.sh leader`.
+4. Move the arm to the mid-range pose, press Enter, then sweep **each joint through its full range**.
 
 If teleop later looks skewed, recalibrate — do not keep recording.
 
-Details: [calibration/README.md](calibration/README.md). Hardware faults: [troubleshooting.md](troubleshooting.md).
+Hardware faults: [troubleshooting.md](docs/troubleshooting.md).
 
 ---
 
@@ -158,7 +246,7 @@ Practice 5–10 demos before recording.
 
 ## 5. Collect data (leader / follower)
 
-Full guide: **[Data collection](../../docs/data-collection.md)** (format, storage, H.264 video, LeRobot doc links).
+Full guide: **[Data collection](docs/data-collection.md)** (format, storage, H.264 video, LeRobot doc links). ElRobot: [ElRobot data collection](../elrobot/docs/data-collection.md).
 
 Log in if you later want to push datasets (`hf upload`). Recording itself stays local:
 
@@ -249,7 +337,7 @@ W&B uses **your** `WANDB_ENTITY`; shared project name `robotpizzacup`. Chart `tr
 
 ### 6c. Cloud GPU (the real policy)
 
-See **[Train in the cloud](../../docs/train-and-deploy.md#cloud-training)**. `PARENT_ID` / `IMAGE` in `.env.example` are organizer defaults — switch them if you use your own Nebius project.
+See **[Train in the cloud](docs/train-and-deploy.md#cloud-training)**. `PARENT_ID` / `IMAGE` in `.env.example` are organizer defaults — switch them if you use your own Nebius project.
 
 ```bash
 bash training/scripts/run_serverless.sh --debug act     # 500 steps, 1h, CUDA + Hub + FS
@@ -271,7 +359,7 @@ Vision-encoder flags for SmolVLA are already in `training/policy/smolvla/config.
 
 ## 7. Deploy on the arm
 
-Camera keys, resolution, `FOLLOWER_ID`, and **task sentence** must match the dataset. Details: [Deploy on the arm](../../docs/train-and-deploy.md#deploy-on-arm).
+Camera keys, resolution, `FOLLOWER_ID`, and **task sentence** must match the dataset. Details: [Deploy on the arm](docs/train-and-deploy.md#deploy-on-arm).
 
 ```bash
 # Local training output (smoke)
@@ -283,7 +371,7 @@ bash training/scripts/download_checkpoint.sh <job-name>
 bash scripts/rollout.sh lerobot-outputs/<job-name>/checkpoints/last/pretrained_model
 ```
 
-Record 10 eval episodes (policy drives the follower, no leader) — see [Train and deploy](../../docs/train-and-deploy.md#record-eval-episodes).
+Record 10 eval episodes (policy drives the follower, no leader) — see [Train and deploy](docs/train-and-deploy.md#record-eval-episodes). Scoring: [Evaluation](docs/train-and-deploy.md#evaluation).
 
 If ACT is below ~70% on the **same** scene you trained on, collect more consistent demos. Do not jump to π0 first.
 
@@ -306,7 +394,5 @@ If ACT is below ~70% on the **same** scene you trained on, collect more consiste
 station.env.example   USB ports, cameras, TASK
 scripts/               calibrate, teleop, record, replay, rollout
 training/              policy YAML, scripts/, docker/ (CUDA images)
-calibration/           where LeRobot stores ids
-camera_setup.md
-troubleshooting.md
+docs/                  data collection, train/deploy (+ evaluation), troubleshooting
 ```

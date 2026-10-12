@@ -5,7 +5,7 @@
 #   bash training/scripts/run_serverless.sh [--debug|--resume|--dry-run|--preemptible] [POLICY] [DATASET] [STEPS]
 #
 # Examples:
-#   set -a && source ../../.env && set +a   # repo-root secrets; also loaded by this script
+#   set -a && source ../.env && set +a   # repo-root secrets (from so101); also loaded by this script
 #   bash training/scripts/run_serverless.sh --debug act          # 500 steps, 1h, proves CUDA + Hub + FS
 #   bash training/scripts/run_serverless.sh act 30000
 #   bash training/scripts/run_serverless.sh smolvla 20000
@@ -18,7 +18,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-REPO="$(cd "${ROOT}/../.." && pwd)"
+REPO="$(cd "${ROOT}/.." && pwd)"
 if [[ -f "${REPO}/.env" ]]; then
   set -a
   # shellcheck disable=SC1091
