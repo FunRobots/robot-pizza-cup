@@ -12,7 +12,9 @@
 # 6000 can try --batch_size=32. max_steps is the warmup clock (5% of the
 # run), so it stays equal to steps.
 #
-# Flash-attention stays off. The backbone falls back to SDPA.
+# Flash-attention stays off unless flash-attn is installed for this
+# torch/CUDA. SDPA is the fallback and is the same training setup.
+# num_workers matches the other policies; it does not change the loss.
 #
 #   bash training/scripts/run_serverless.sh groot
 
@@ -76,7 +78,7 @@ dataset:
         type: Identity
 
 seed: 1000
-num_workers: 4
+num_workers: 8
 steps: 20000
 batch_size: 16
 log_freq: 50

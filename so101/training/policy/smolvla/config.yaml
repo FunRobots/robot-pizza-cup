@@ -5,7 +5,10 @@
 #
 # smolvla_base was trained with camera1/2/3 and chunk_size 50. Keep that
 # horizon (1.7 s at 30 fps). Pizza has two views, so rename them and pad
-# the third slot with empty_cameras=1.
+# the third slot with empty_cameras=1. The pad is masked, but dropping it
+# shortens the prefix the action expert was pretrained with. A 10k probe
+# already updated in ~0.15 s, so compile stays off (its default mode is
+# the long max-autotune pass).
 #
 # Expert-only, vision encoder frozen: the base checkpoint and the SmolVLA
 # fine-tune recipe. 397 episodes of one task adapt the action expert;
