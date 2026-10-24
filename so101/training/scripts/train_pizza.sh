@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local pizza-dataset smoke (20 steps). Full ACT/SmolVLA runs: run_serverless.sh.
+# CPU pizza-dataset smoke (20 steps, max 200). GPU fine-tune: DevLab lerobot-train or run_serverless.sh.
 # Usage: bash training/scripts/train_pizza.sh [POLICY] [STEPS]
 set -euo pipefail
 
@@ -22,7 +22,7 @@ if [[ -n "${DATASET_REPO_ID:-}" ]]; then
 elif [[ -n "${HF_USER:-}" && -n "${DATASET_NAME:-}" ]]; then
   DATASET="${HF_USER}/${DATASET_NAME}"
 else
-  DATASET="mnrozhkov/pizza_hack_v1_fake_ingredients"
+  DATASET="robotpizzacup/robot-pizza-cup-1"
 fi
 
 exec bash "$ROOT/training/scripts/train_local.sh" "$POLICY" "$DATASET" "$STEPS"

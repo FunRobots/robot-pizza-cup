@@ -229,13 +229,13 @@ Pass the full `namespace/dataset_name` (with timestamp if that is how it was rec
 uv run lerobot-train \
   --config_path=training/policy/act/config.yaml \
   --dataset.repo_id="mnrozhkov/pizza_hack_v1_20260919_145422" \
-  --policy.device=mps \
+  --policy.device=cpu \
   --steps=20 \
   --batch_size=2 \
   --policy.push_to_hub=false
 ```
 
-Full GPU training: `bash training/scripts/run_serverless.sh act 30000` (see [Train and deploy](train-and-deploy.md)).
+GPU training after the dataset is on the Hub: a [DevLab](devlab.md) (`lerobot-train --policy.device=cuda`) or a Job, `bash training/scripts/run_serverless.sh act` ([Train and deploy](train-and-deploy.md)).
 
 Works the same for `RobotPizzaCup/...`.
 

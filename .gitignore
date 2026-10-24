@@ -9,6 +9,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env-devlab.example
 so101/station.env
 elrobot/norma-core
 elrobot/vendor/
