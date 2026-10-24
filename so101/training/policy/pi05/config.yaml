@@ -2,8 +2,9 @@
 #
 # Front + top stay front + top. pretrained_path loads weights only, so
 # feature names come from this dataset. Do not add rename_map: with
-# pretrained_path that drops the images. empty_cameras=1 pads the third
-# slot the base model was built with. Images are resized to 224×224.
+# pretrained_path that drops the images. empty_cameras=0: this robot has
+# no third view, and a padded slot is masked out of attention anyway.
+# Images are resized to 224×224.
 #
 # Expert-only, vision encoder frozen, same idea as the SmolVLA YAML.
 # Accept the google/paligemma-3b-pt-224 license and `hf auth login`
@@ -11,8 +12,13 @@
 # pizza stats. Actions stay absolute so this is comparable to ACT.
 # Relative arm actions need a stats recompute first (gripper excluded).
 #
-# ~2.7 epochs at batch 16 (30000 * 16 / 176039). L40S should try
-# --batch_size=8. Leave use_amp off; dtype is bfloat16.
+# RTX PRO 6000 (96 GB): checkpointing off. A batch-16 probe used 46 GB
+# and cut the update from 1.38 s to 0.53 s with the same loss. Compile
+# uses reduce-overhead; the first steps sit still while Torch compiles.
+# L40S should set gradient_checkpointing=true and try --batch_size=8.
+# Leave use_amp off; dtype is bfloat16.
+#
+# ~2.7 epochs at batch 16 (30000 * 16 / 176039).
 #
 #   bash training/scripts/run_serverless.sh pi05
 
@@ -25,10 +31,12 @@ policy:
   dtype: bfloat16
   chunk_size: 50
   n_action_steps: 50
-  empty_cameras: 1
+  empty_cameras: 0
   freeze_vision_encoder: true
   train_expert_only: true
-  gradient_checkpointing: true
+  gradient_checkpointing: false
+  compile_model: true
+  compile_mode: reduce-overhead
   use_relative_actions: false
   normalization_mapping:
     ACTION: MEAN_STD

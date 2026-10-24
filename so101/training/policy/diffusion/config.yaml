@@ -13,6 +13,10 @@
 # DDIM with 10 inference steps is what makes laptop rollout usable.
 # Separate ResNet-18 per camera (front vs top). ~11 epochs at batch 32
 # (60000 * 32 / 176039). State and action stay MIN_MAX (diffusion preset).
+# compile_model only wraps the U-Net. Same loss, less kernel-launch time.
+# A 10k batch-32 probe was already ~0.08 s/step and 7 GB, so the gain is
+# smaller than for π0.5. Leave the 512-1024-2048 U-Net; shrinking it
+# would change capacity.
 #
 #   bash training/scripts/run_serverless.sh diffusion
 
@@ -21,6 +25,8 @@ policy:
   push_to_hub: false
   device: cuda
   use_amp: true
+  compile_model: true
+  compile_mode: reduce-overhead
   n_obs_steps: 2
   horizon: 32
   n_action_steps: 16

@@ -11,6 +11,8 @@
 # (1.4 epochs). Constant AdamW 1e-5 (ACT preset). Stop there and roll out;
 # another 70k steps does not match that curve.
 # RTX PRO 6000 can try --batch_size=32. L40S should stay at 16 (native 640×480).
+# AMP is already on. ACT has no compile switch. Keep native 640×480; a
+# resize would change what the policy sees. A batch-8 run was ~21 steps/s.
 #
 # CPU smoke (train_local.sh refuses more than 200 steps):
 #   bash training/scripts/train_pizza.sh act 20
