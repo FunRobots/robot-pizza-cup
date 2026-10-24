@@ -26,9 +26,9 @@ Robot control and data collection run in a local `uv` venv (MPS on Apple Silicon
 | --- | --- |
 | SO-101 follower + leader | Powered, daisy-chained, matching voltage PSU |
 | 1–2 USB webcams | Fixed mounts, 640×480 @ 30 FPS. Front is required; overhead (`top`) is optional |
-| Hugging Face account **(yours)** | `hf auth login`; set `HF_USER` in the repo-root `.env` |
+| Hugging Face account **(yours)** | `uv run hf auth login`; set `HF_USER` in the repo-root `.env` |
 | Weights & Biases **(yours)** | `WANDB_API_KEY` + `WANDB_ENTITY`; optional shared project `robotpizzacup` |
-| `uv` | Python package runner for this directory |
+| `uv` | Python package runner. Install once if `command -v uv` fails (see below) |
 | `ffmpeg` | `brew install ffmpeg` on macOS |
 | Docker (optional) | Local CPU smoke test of the cloud image |
 | Nebius CLI (optional) | GPU fine-tune |
@@ -37,14 +37,25 @@ Robot control and data collection run in a local `uv` venv (MPS on Apple Silicon
 
 ## 1. Install (local uv environment)
 
-From **this directory** (`so101`):
+**Install `uv` once** when `command -v uv` fails (DevLabs Jupyter, a fresh machine). The binary lands in `~/.local/bin`. The current terminal needs `source`; a new terminal does not.
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source "$HOME/.local/bin/env"
+```
+
+**Then create this environment** from `so101`. Python is 3.13 (`.python-version`). `uv sync --managed-python` downloads that interpreter and refuses the image Python. DevLabs Jupyter’s `/usr/bin/python3.12` has no `Python.h`. Linux needs those headers because LeRobot’s `pynput` dependency builds `evdev` from source. `unset UV_PYTHON` clears an image pin that would keep selecting `/usr/bin/python3.12`. Delete a leftover `.venv` from a failed sync before retrying.
 
 ```bash
 cd so101
-uv python install 3.12
-uv sync
-hf auth login
+unset UV_PYTHON
+rm -rf .venv
+uv python install 3.13
+uv sync --managed-python --python 3.13
+uv run hf auth login
 ```
+
+The sync log must show an interpreter under `~/.local/share/uv/python`. `hf` lives in the venv, so later Hub commands are `uv run hf ...`.
 
 This pulls LeRobot **0.6.1** with:
 
@@ -69,6 +80,28 @@ uv run lerobot-train --help
 ```
 
 On Apple Silicon, `mps` should be `True`. CUDA is for the cloud image.
+
+### Get started (no robot)
+
+Run this in the **DevLabs SSH terminal** opened from JupyterLab (Terminal, not a notebook cell), from `so101`. [`robotpizzacup/robot-pizza-cup-1-ep0-39`](https://huggingface.co/datasets/robotpizzacup/robot-pizza-cup-1-ep0-39) is the first 40 episodes of the shared pizza dataset (both cameras, about 380 MB). Load one frame:
+
+```bash
+uv run python - <<'PY'
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+dataset = LeRobotDataset("robotpizzacup/robot-pizza-cup-1-ep0-39")
+sample = dataset[0]
+print(dataset.num_episodes, tuple(sample["observation.images.front"].shape))
+PY
+```
+
+`40` and `(3, 480, 640)` means the download worked. A 20-step ACT smoke on that same repo:
+
+```bash
+bash training/scripts/train_local.sh act robotpizzacup/robot-pizza-cup-1-ep0-39 20
+```
+
+`20` is the step count. The script already defaults to 20 and refuses more than 200 outside a cloud job. On the DevLabs machine this smoke uses CPU; MPS is selected only on macOS.
 
 Copy station + secrets templates. Secrets stay at the **repo root**. Ports stay here:
 
@@ -251,8 +284,8 @@ Full guide: **[Data collection](docs/data-collection.md)** (format, storage, H.2
 Log in if you later want to push datasets (`hf upload`). Recording itself stays local:
 
 ```bash
-hf auth login
-HF_USER=$(NO_COLOR=1 hf auth whoami | awk -F': *' 'NR==1 {print $2}')
+uv run hf auth login
+HF_USER=$(NO_COLOR=1 uv run hf auth whoami | awk -F': *' 'NR==1 {print $2}')
 ```
 
 Put `HF_USER` and `DATASET_NAME` in the repo-root `.env`. Put `TASK` in `station.env`. The task sentence is part of the dataset — **use the same words at train and rollout**.
@@ -276,8 +309,6 @@ Press **`n` after each demo you want to keep** — quitting with `q` mid-episode
 Defaults in `station.env`: 50 episodes × 30 s + 10 s reset. That is the SmolVLA starting point.
 
 **Data quality beats model choice.** First 50 episodes: one object, fixed pizza pose, fixed camera, one operator, deliberate grasps.
-
-Hub repo name and dataset card: [Upload](docs/data-collection.md#upload). Pattern: `team-<N>-<team-name>-<dataset-name>-<version>`.
 
 After recording, `record.sh` prints a Rerun command. Preview the saved episodes (video + joints):
 
@@ -306,7 +337,10 @@ Local = **20-step `lerobot-train`**. GPU = pull the published image + `run_serve
 
 ```bash
 bash training/scripts/train_local.sh act lerobot/pusht 20
+bash training/scripts/train_local.sh act robotpizzacup/robot-pizza-cup-1-ep0-39 20
 ```
+
+The second command is the pizza sample from [Get started](#get-started-no-robot). A local folder works too: pass `../data/robot-pizza-cup-1-ep0-39` instead of the Hub id.
 
 Or Docker CPU (amd64 — same image family as cloud):
 

@@ -93,7 +93,7 @@ Read the CLI log: it lists kept and discarded episodes. If you see `insufficient
 
 Parquet files are local artifacts — not committed to git. Back them up before wiping `station_data`.
 
-Do not commit large episode exports to this repo. Keep parquets on disk or on the Hub ([upload](#upload)).
+Do not commit large episode exports to this repo. Keep parquets on disk, Hub, or team object storage.
 
 ## Dataset format (Station parquet)
 
@@ -147,65 +147,6 @@ Default names are `joint_0`… and `camera_0`… in Station list order. Pass `--
 
 Each source file is loaded whole, JPEGs included. A long recording can exhaust memory. The converter also decodes every selected frame to compute image statistics.
 
-<a id="upload"></a>
-
-## Upload to Hugging Face Hub
-
-Export stays local (`export_dataset.sh` writes `${DATASET_OUTPUT}.parquet` and a preview `.mp4`). Push a copy when the team should train from a shared dataset. The `hf` CLI is in the SO-101 environment (`so101/`, `uv run hf`). Log in once; the token needs write access:
-
-```bash
-cd so101
-uv run hf auth login
-```
-
-Hub repo name: [`team-<N>-<team-name>-<dataset-name>-<version>`](../../README.md#hub-dataset-names). Brackets are placeholders. Use lowercase letters, digits, and hyphens.
-
-```text
-RobotPizzaCup/team-3-your-team-elrobot-precision-topping-v1
-```
-
-`HF_USER` is the namespace (your username, or `RobotPizzaCup` if you can create datasets there). Put the arm in the dataset name (`elrobot-precision-topping`) so an SO-101 upload from the same team does not overwrite this repo. A LeRobot v2.1 conversion of the same demos gets its own name, for example `team-3-your-team-elrobot-precision-topping-lerobot-v1`.
-
-Build a folder with the parquet, the preview video, and a dataset card. `README.md` is the Hub dataset card.
-
-```text
-data/team-3-your-team-elrobot-precision-topping-v1/
-  README.md
-  elrobot-precision-topping.parquet
-  preview.mp4
-```
-
-```markdown
-# team-3-your-team-elrobot-precision-topping-v1
-
-- **Task:** place one pepperoni on the pizza
-- **Episodes:** 40
-- **Robot:** ElRobot follower, 8 servos, NormaCore Station teleop
-- **Cameras:** wrist, side (Station image order)
-- **Varied:** pepperoni start position. Pizza pose, cameras, and task text stayed fixed.
-- **Format:** Station parquet (v0.1.0-beta.10). `action` in a LeRobot conversion is `goal_norm` on the same frame as `position_norm`.
-```
-
-Match **Task** to `TASK` in `elrobot.env`. From `so101`:
-
-```bash
-uv run hf upload RobotPizzaCup/team-3-your-team-elrobot-precision-topping-v1 \
-  ../data/team-3-your-team-elrobot-precision-topping-v1 \
-  --repo-type dataset
-```
-
-Add `--private` to keep it private until you publish it. Uploading the same repo id again updates that dataset. Bump `-v1` to `-v2` when the task sentence, cameras, or episode timing change.
-
-`smolvla_py` still trains on a local parquet path. Download a shared export with:
-
-```bash
-uv run hf download RobotPizzaCup/team-3-your-team-elrobot-precision-topping-v1 \
-  --repo-type dataset \
-  --local-dir ../data/team-3-your-team-elrobot-precision-topping-v1
-```
-
-To publish the LeRobot v2.1 folder instead, add the same style of `README.md` at its root and `hf upload` that directory. Say **Format: LeRobot v2.1** in the card.
-
 ## After export — training and deploy
 
 Fine-tune and run policies on the Station parquet: **[Train and deploy](train-and-deploy.md)** (SmolVLA in `smolvla_py`, CUDA, 6 vs 8 DoF limits).
@@ -221,6 +162,5 @@ Before fine-tuning or sharing a parquet:
 - [ ] Export log shows the expected number of episodes kept (not mostly “too short” or “insufficient commands”)
 - [ ] Preview MP4 motion matches what you demonstrated
 - [ ] Leader and follower were calibrated; follower tracked during `teleop.sh`
-- [ ] Hub `README.md` lists task, episode count, robot, cameras, and what you varied
 
 Setup: [ElRobot setup](../README.md).

@@ -5,6 +5,7 @@
 # Examples:
 #   bash training/scripts/train_local.sh act lerobot/pusht 20
 #   bash training/scripts/train_local.sh act mnrozhkov/pizza_hack_v1_fake_ingredients 20
+#   bash training/scripts/train_local.sh act ../data/robot-pizza-cup-1-ep0-39 20
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -61,7 +62,10 @@ CMD=(
 if [[ "$POLICY" == "smolvla" ]]; then
   CMD+=(--policy.type=smolvla --policy.empty_cameras=1)
 fi
-if [[ -n "$DATASET" ]]; then
+if [[ -n "$DATASET" && -d "$DATASET" ]]; then
+  DATASET_PATH="$(cd "$DATASET" && pwd)"
+  CMD+=(--dataset.root="$DATASET_PATH" --dataset.repo_id="local/$(basename "$DATASET_PATH")")
+elif [[ -n "$DATASET" ]]; then
   CMD+=(--dataset.repo_id="$DATASET")
 fi
 if [[ -n "${DATASET_REVISION:-}" ]]; then

@@ -28,3 +28,8 @@ select = ["E", "F", "I", "UP"]
 
 [dependency-groups]
 dev = ["ruff>=0.8,<0.15"]
+
+[tool.uv]
+# DevLabs Jupyter ships a system CPython without Python.h. evdev (via pynput on
+# Linux) is sdist-only and must compile, so sync has to use a uv-managed interpreter.
+python-preference = "only-managed"

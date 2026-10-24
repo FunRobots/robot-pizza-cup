@@ -21,14 +21,27 @@ Status: **Draft v0.1**.
 
 From `so101`. Full steps: [so101/README.md](so101/README.md).
 
+**1. Install `uv` once** if `uv` is not a command (DevLabs Jupyter, a fresh machine). The installer writes `~/.local/bin/uv` and updates the shell profile. The terminal you installed in still needs `source`.
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source "$HOME/.local/bin/env"
+```
+
+**2. Create the environment.** DevLabs’ `(base)` Python is `/usr/bin/python3.12` and has no `Python.h`. On Linux, LeRobot pulls `pynput`, which pulls `evdev`, and that package compiles from source. `uv sync` has to use uv’s own CPython 3.13 (`so101/.python-version`). `hf` is installed inside the venv.
+
 ```bash
 cd so101
-uv python install 3.12
-uv sync
-hf auth login
+unset UV_PYTHON
+rm -rf .venv
+uv python install 3.13
+uv sync --managed-python --python 3.13
+uv run hf auth login
 cp station.env.example station.env
 cp ../.env.example ../.env
 ```
+
+The sync log must name an interpreter under `~/.local/share/uv/python`. A line that says `/usr/bin/python3.12` means this environment will fail the same way again.
 
 That install includes LeRobot **0.6.1** with robot CLIs (`core_scripts` + `feetech`) and policy extras **ACT** (core), **SmolVLA**, **Diffusion**, and **π0 / π0.5**.
 
@@ -81,30 +94,12 @@ Upstream: [norma-core](https://github.com/norma-core/norma-core/tree/v0.1.0-beta
 | --- | --- |
 | [SO-101 setup](so101/README.md) | Install, calibrate, collect, train, deploy |
 | [ElRobot setup](elrobot/README.md) | Install, calibrate, collect, train, deploy |
-| [SO-101 data collection](so101/docs/data-collection.md) | `lerobot-record`, H.264, LeRobot v3, Hub upload |
-| [ElRobot data collection](elrobot/docs/data-collection.md) | Station tags, parquet export, LeRobot v2.1 conversion, Hub upload |
+| [SO-101 data collection](so101/docs/data-collection.md) | `lerobot-record`, H.264, LeRobot v3 |
+| [ElRobot data collection](elrobot/docs/data-collection.md) | Station tags, parquet export, LeRobot v2.1 conversion |
 | [SO-101 train and deploy](so101/docs/train-and-deploy.md) | Local smoke, Nebius GPU, rollout |
 | [ElRobot train and deploy](elrobot/docs/train-and-deploy.md) | SmolVLA fine-tune, deploy, evaluation |
 
 The two datasets are separate. Norma's SmolVLA trainer reads Station parquet. `elrobot/scripts/export_to_lerobot.py` writes a LeRobot **v2.1** folder from those parquets. SO-101 training reads LeRobot **v3**.
-
-## Hub dataset names
-
-Push each collection to the Hugging Face Hub under your team slug. Brackets below are placeholders; the repo name itself is lowercase letters, digits, and hyphens.
-
-```text
-<namespace>/team-<N>-<team-name>-<dataset-name>-<version>
-```
-
-| Piece | Example |
-| --- | --- |
-| Namespace (`HF_USER`) | your username, or `RobotPizzaCup` if you can create datasets there |
-| Team | `team-3-your-team` |
-| Dataset | arm plus task, e.g. `so101-precision-topping` or `elrobot-precision-topping` |
-| Version | `v1`, then `v2` when the task sentence, cameras, or episode timing change |
-| Repo id | `RobotPizzaCup/team-3-your-team-so101-precision-topping-v1` |
-
-Put a `README.md` dataset card in the folder you upload. Cover **task**, **number of episodes**, **robot**, **cameras**, and **what you varied**. Steps: [SO-101 upload](so101/docs/data-collection.md#upload) · [ElRobot upload](elrobot/docs/data-collection.md#upload).
 
 ## Local data
 

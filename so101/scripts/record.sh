@@ -71,9 +71,7 @@ echo "=============================================="
 echo "Or: bash scripts/viz_dataset.sh"
 echo
 
-echo "Hub upload is off. Optional later (team slug, not the timestamped folder name):"
-echo "  # add README.md in the dataset folder first — docs/data-collection.md#upload"
-echo "  uv run hf upload \${HF_USER}/team-<N>-<team-name>-<dataset-name>-<version> \\"
+echo "Hub upload is off. Optional later:"
+echo "  uv run hf upload ${STAMPED_REPO} \\"
 echo "    ${LATEST_ROOT} \\"
 echo "    --repo-type dataset"
-echo "  local folder: ${STAMPED_REPO}"

@@ -27,9 +27,9 @@ Run the commands on this page from `so101`. That directory is the LeRobot `uv` p
 
 | Requirement | Purpose | Setup |
 | --- | --- | --- |
-| Python 3.12 + `uv` | Local robot + `lerobot-train` smoke | `uv sync` in `so101` |
+| Python 3.13 + `uv` | Local robot + `lerobot-train` smoke | `uv sync --managed-python --python 3.13` in `so101` |
 | `ffmpeg` | Video encoding during record | `brew install ffmpeg` |
-| Hugging Face account **(yours)** | Datasets / optional policy push | `hf auth login`; set `HF_USER` |
+| Hugging Face account **(yours)** | Datasets / optional policy push | `uv run hf auth login`; set `HF_USER` |
 | `so101/station.env` | Ports, cameras, task, episode timing | Copy from `so101/station.env.example` |
 | `.env` | Secrets (HF, W&B, Nebius FS) | Copy from repo-root `.env.example` |
 | Docker (optional) | CPU smoke of the cloud image | Docker Desktop |
