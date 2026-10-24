@@ -16,7 +16,7 @@ Official references:
 - SmolVLA: https://huggingface.co/docs/lerobot/smolvla
 - Cloud fine-tune pattern: [lerobot-finetune-job](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/lerobot-finetune-job) and [smolva-ft-norma-core](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics/smolva-ft-norma-core)
 
-Robot control and data collection run in a local `uv` venv (MPS on Apple Silicon). Real training runs in Docker / Nebius GPU jobs (CUDA).
+Robot control and data collection run in a local `uv` venv. CPU smokes use `train_local.sh`. GPU fine-tune is a [DevLab](docs/devlab.md) (recommended) or a [Job](docs/train-and-deploy.md#cloud-training). Default GPU is RTX PRO 6000; L40S and H100 are alternatives.
 
 ---
 
@@ -74,12 +74,12 @@ ACT has no extra — it ships in the core package.
 Check:
 
 ```bash
-uv run python -c "import torch, lerobot; print('torch', torch.__version__, 'mps', torch.backends.mps.is_available())"
+uv run python -c "import torch, lerobot; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 uv run lerobot-calibrate --help
 uv run lerobot-train --help
 ```
 
-On Apple Silicon, `mps` should be `True`. CUDA is for the cloud image.
+On a laptop, `cuda` is `False`. On a DevLab it should be `True`. CPU smokes still run with `--policy.device=cpu`.
 
 ### Get started (no robot)
 
@@ -101,7 +101,7 @@ PY
 bash training/scripts/train_local.sh act robotpizzacup/robot-pizza-cup-1-ep0-39 20
 ```
 
-`20` is the step count. The script already defaults to 20 and refuses more than 200 outside a cloud job. On the DevLabs machine this smoke uses CPU; MPS is selected only on macOS.
+`20` is the step count. The script defaults to 20, uses `cpu`, and refuses more than 200 steps. A full fine-tune on this machine is `lerobot-train --policy.device=cuda` ([DevLab](docs/devlab.md)), not `train_local.sh`.
 
 Copy station + secrets templates. Secrets stay at the **repo root**. Ports stay here:
 
@@ -331,9 +331,9 @@ Resume more episodes later with `--resume=true` and `--dataset.num_episodes` set
 
 ## 6. Train
 
-Local = **20-step `lerobot-train`**. GPU = pull the published image + `run_serverless.sh`. Do not train 30k steps on a Mac.
+CPU smoke = **`train_local.sh` (≤200 steps, `cpu`)**. GPU fine-tune = a [DevLab](docs/devlab.md) (recommended) or `run_serverless.sh`. Default GPU is RTX PRO 6000.
 
-### 6a. Local smoke test (no robot, public dataset)
+### 6a. CPU smoke test (no robot, public dataset)
 
 ```bash
 bash training/scripts/train_local.sh act lerobot/pusht 20
@@ -350,9 +350,9 @@ bash training/scripts/run_docker.sh --rebuild act lerobot/pusht 20
 
 `Using device: cpu` in Docker on macOS is expected.
 
-### 6b. Pizza YAML on the laptop (still a smoke)
+### 6b. Pizza YAML on CPU (still a smoke)
 
-Default dataset: **`mnrozhkov/pizza_hack_v1_fake_ingredients`**. Use **your** Hub dataset via `DATASET_REPO_ID` / `HF_USER` after you record.
+Default dataset: **`robotpizzacup/robot-pizza-cup-1`**. Use **your** Hub dataset via `DATASET_REPO_ID` / `HF_USER` after you record.
 
 ```bash
 bash training/scripts/train_pizza.sh act 20
@@ -363,7 +363,7 @@ Or:
 ```bash
 uv run lerobot-train \
   --config_path=training/policy/act/config.yaml \
-  --policy.device=mps \
+  --policy.device=cpu \
   --steps=20 \
   --batch_size=2 \
   --policy.push_to_hub=false
@@ -371,25 +371,41 @@ uv run lerobot-train \
 
 W&B uses **your** `WANDB_ENTITY`; shared project name `robotpizzacup`. Chart `train/loss` under Charts.
 
-### 6c. Cloud GPU (the real policy)
+### 6c. GPU fine-tune
 
-See **[Train in the cloud](docs/train-and-deploy.md#cloud-training)**. `PARENT_ID` / `IMAGE` in `.env.example` are organizer defaults — switch them if you use your own Nebius project.
+**DevLab (recommended):** [DevLab guide](docs/devlab.md). From `so101` on the DevLab:
+
+On the DevLab, copy [`.env-devlab.example`](../.env-devlab.example) to `../.env` in a terminal, then:
 
 ```bash
-bash training/scripts/run_serverless.sh --debug act     # 500 steps, 1h, CUDA + Hub + FS
-bash training/scripts/run_serverless.sh act 30000       # ACT
-bash training/scripts/run_serverless.sh smolvla 20000   # SmolVLA
+uv run lerobot-train \
+  --config_path=training/policy/act/config.yaml \
+  --policy.device=cuda \
+  --policy.push_to_hub=false \
+  --dataset.repo_id=robotpizzacup/robot-pizza-cup-1
+```
+
+Steps and batch size come from the YAML (ACT 100k / 16). To push the checkpoint to the Hub at the end of the run, pass `--policy.push_to_hub=true --policy.type=act --policy.repo_id="$HF_USER/pizza-act"`.
+
+**Job (optional):** [Train with a Job](docs/train-and-deploy.md#cloud-training). `PARENT_ID` / `IMAGE` in `.env.example` are organizer defaults. Default platform is `gpu-rtx6000-a` / `1gpu-24vcpu-218gb`.
+
+```bash
+bash training/scripts/run_serverless.sh --debug act   # 500 steps, 1h, CUDA + Hub + FS
+bash training/scripts/run_serverless.sh act           # ACT, 100k steps from YAML
+bash training/scripts/run_serverless.sh smolvla       # SmolVLA, 60k steps from YAML
 ```
 
 Vision-encoder flags for SmolVLA are already in `training/policy/smolvla/config.yaml`.
 
 | Profile | Policy | Batch | Steps | Where | Checkpoint |
 | --- | --- | --- | --- | --- | --- |
-| Install check | ACT | 2 | 20 | local MPS / Docker CPU | throwaway local |
-| Cloud canary | ACT | 8 | 500 | 1× L40S `--debug` | shared FS |
-| First robot policy | ACT | 8 | 30k–80k | 1× L40S | FS / Hub → rollout |
-| Headline VLA | SmolVLA | 8 | 20k | 1× L40S | same |
-| Optional | Diffusion | 8 | 20k+ | 1× L40S | same |
+| Install check | ACT | 2 | 20 | CPU / Docker CPU | throwaway local |
+| Job canary | ACT | 16 | 500 | RTX PRO 6000 `--debug` | shared FS |
+| First robot policy | ACT | 16 | 100k | RTX PRO 6000 Job or DevLab | FS / Hub → rollout |
+| Headline VLA | SmolVLA | 16 | 60k | RTX PRO 6000 Job or DevLab | same |
+| Optional | Diffusion | 32 | 60k | RTX PRO 6000 Job or DevLab | same |
+
+L40S (`gpu-l40s-a` / `1gpu-24vcpu-96gb`) and H100 (`gpu-h100-sxm` / `1gpu-16vcpu-200gb`) use the same step counts. Set `JOB_PLATFORM` and `JOB_PRESET` together.
 
 ---
 
@@ -417,7 +433,7 @@ If ACT is below ~70% on the **same** scene you trained on, collect more consiste
 
 | Policy | Extra | VRAM (indicative) | Use |
 | --- | --- | --- | --- |
-| ACT | core | ~1 GB | First success, laptops, single task |
+| ACT | core | ~1 GB | First success, single task |
 | Diffusion | `diffusion` | ~5 GB | Multimodal actions |
 | SmolVLA | `smolvla` | ~4 GB+ | Language / multi-task, hackathon headline |
 | π0 / π0.5 | `pi` | ~16 GB | After ACT works, 24 GB+ GPU |
@@ -430,5 +446,5 @@ If ACT is below ~70% on the **same** scene you trained on, collect more consiste
 station.env.example   USB ports, cameras, TASK
 scripts/               calibrate, teleop, record, replay, rollout
 training/              policy YAML, scripts/, docker/ (CUDA images)
-docs/                  data collection, train/deploy (+ evaluation), troubleshooting
+docs/                  data collection, DevLab, train/deploy (+ evaluation), troubleshooting
 ```

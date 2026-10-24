@@ -11,7 +11,7 @@ Each team has two kits: a LeRobot SO-101 pair and an ElRobot pair. Pick the arm 
 | LeRobot SO-101 | [so101](so101/README.md) | `uv` + LeRobot 0.6.1 |
 | ElRobot | [elrobot](elrobot/README.md) | NormaCore Station binary |
 
-**SO-101 train → deploy:** [Train and deploy](so101/docs/train-and-deploy.md) · **ElRobot train → deploy:** [Train and deploy](elrobot/docs/train-and-deploy.md)
+**SO-101 train → deploy:** [DevLab](so101/docs/devlab.md) · [Train and deploy](so101/docs/train-and-deploy.md) · **ElRobot train → deploy:** [Train and deploy](elrobot/docs/train-and-deploy.md)
 
 Status: **Draft v0.1**.
 
@@ -52,13 +52,14 @@ That install includes LeRobot **0.6.1** with robot CLIs (`core_scripts` + `feete
 | Teleop | `bash scripts/teleoperate.sh` |
 | Record 50 demos | `bash scripts/record.sh` |
 | Preview in Rerun | `bash scripts/viz_dataset.sh` |
-| Local ACT smoke (20 steps) | `bash training/scripts/train_local.sh act lerobot/pusht 20` |
-| Cloud canary (500 steps) | `bash training/scripts/run_serverless.sh --debug act` |
-| Cloud ACT | `bash training/scripts/run_serverless.sh act 30000` |
+| CPU ACT smoke (20 steps) | `bash training/scripts/train_local.sh act lerobot/pusht 20` |
+| DevLab fine-tune (recommended) | [DevLab guide](so101/docs/devlab.md) |
+| Job canary (500 steps) | `bash training/scripts/run_serverless.sh --debug act` |
+| Job ACT | `bash training/scripts/run_serverless.sh act` |
 | Copy checkpoint from FS mount | `bash training/scripts/download_checkpoint.sh <job-name>` |
 | Run policy | `bash scripts/rollout.sh <checkpoint>` |
 
-Local robot work uses the `uv` venv in `so101` (MPS on Apple Silicon). Real SmolVLA training uses Docker / [Nebius AI Jobs](https://github.com/mnrozhkov/serverless-ai-cookbook/tree/clawbio/robotics), not this laptop.
+Robot work uses the `uv` venv in `so101`. `train_local.sh` is a CPU smoke. GPU fine-tune is a [DevLab](so101/docs/devlab.md) (recommended, RTX PRO 6000 by default) or a [Job](so101/docs/train-and-deploy.md#cloud-training). L40S and H100 are the other platforms.
 
 Upstream: [LeRobot install](https://huggingface.co/docs/lerobot/installation) · [SO-101](https://huggingface.co/docs/lerobot/so101) · [real-robot IL](https://huggingface.co/docs/lerobot/il_robots)
 
@@ -96,7 +97,8 @@ Upstream: [norma-core](https://github.com/norma-core/norma-core/tree/v0.1.0-beta
 | [ElRobot setup](elrobot/README.md) | Install, calibrate, collect, train, deploy |
 | [SO-101 data collection](so101/docs/data-collection.md) | `lerobot-record`, H.264, LeRobot v3 |
 | [ElRobot data collection](elrobot/docs/data-collection.md) | Station tags, parquet export, LeRobot v2.1 conversion |
-| [SO-101 train and deploy](so101/docs/train-and-deploy.md) | Local smoke, Nebius GPU, rollout |
+| [SO-101 DevLab](so101/docs/devlab.md) | Recommended GPU workspace: data, fine-tune, policy server |
+| [SO-101 train and deploy](so101/docs/train-and-deploy.md) | CPU smoke, DevLab, Jobs, rollout |
 | [ElRobot train and deploy](elrobot/docs/train-and-deploy.md) | SmolVLA fine-tune, deploy, evaluation |
 
 The two datasets are separate. Norma's SmolVLA trainer reads Station parquet. `elrobot/scripts/export_to_lerobot.py` writes a LeRobot **v2.1** folder from those parquets. SO-101 training reads LeRobot **v3**.

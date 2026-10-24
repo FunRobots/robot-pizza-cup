@@ -1,17 +1,85 @@
-# Diffusion policy (optional third path). Needs a mid-range GPU.
+# Diffusion policy from scratch on robotpizzacup/robot-pizza-cup-1 (LeRobot 0.6.1).
+#
+# Same dataset as ACT: 397 episodes, 176039 frames, 30 fps, front + top, 6-DoF.
+# Optional third path. ACT is the one to roll out on the laptop first.
+#
+# Images are resized to 240×320 (aspect kept) with a 5% random crop so a
+# small camera shift at the table does not require native 640×480 in the
+# backbone. U-Net horizon must be a multiple of 8 (three downsample stages).
+# Predict 32 steps (1.1 s), execute 16 (0.5 s). drop_n_last_frames =
+# horizon - n_action_steps - n_obs_steps + 1, so episode tails are not
+# trained on padded actions.
+#
+# DDIM with 10 inference steps is what makes laptop rollout usable.
+# Separate ResNet-18 per camera (front vs top). ~11 epochs at batch 32
+# (60000 * 32 / 176039). State and action stay MIN_MAX (diffusion preset).
+#
+#   bash training/scripts/run_serverless.sh diffusion
 
 policy:
   type: diffusion
   push_to_hub: false
   device: cuda
+  use_amp: true
+  n_obs_steps: 2
+  horizon: 32
+  n_action_steps: 16
+  drop_n_last_frames: 15
+  vision_backbone: resnet18
+  pretrained_backbone_weights: ResNet18_Weights.IMAGENET1K_V1
+  resize_shape: [240, 320]
+  crop_ratio: 0.95
+  crop_is_random: true
+  use_separate_rgb_encoder_per_camera: true
+  noise_scheduler_type: DDIM
+  num_train_timesteps: 100
+  num_inference_steps: 10
+  do_mask_loss_for_padding: true
+  optimizer_lr: 1.0e-4
+  scheduler_warmup_steps: 500
 
 dataset:
-  repo_id: mnrozhkov/pizza_hack_v1_fake_ingredients
+  repo_id: robotpizzacup/robot-pizza-cup-1
+  video_backend: pyav
+  return_uint8: true
+  image_transforms:
+    enable: true
+    max_num_transforms: 2
+    tfs:
+      brightness:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          brightness: [0.8, 1.2]
+      contrast:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          contrast: [0.8, 1.2]
+      saturation:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          saturation: [0.8, 1.2]
+      hue:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          hue: [-0.03, 0.03]
+      sharpness:
+        weight: 0.0
+        type: Identity
+      affine:
+        weight: 0.0
+        type: Identity
 
-steps: 20000
-batch_size: 8
+seed: 1000
+num_workers: 8
+steps: 60000
+batch_size: 32
 log_freq: 50
-save_freq: 5000
+save_freq: 10000
+env_eval_freq: 0
 
 wandb:
   enable: true

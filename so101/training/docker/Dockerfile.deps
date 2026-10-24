@@ -4,7 +4,7 @@
 #
 #   bash training/scripts/build_docker.sh --target deps --push
 #
-# Build linux/amd64 (Nebius L40S/H100). Pass --platform on `docker build`, not FROM.
+# Build linux/amd64 (RTX PRO 6000, L40S, or H100). Pass --platform on `docker build`, not FROM.
 
 FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04 AS cuda-base
 

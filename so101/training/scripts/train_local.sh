@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Local smoke test via lerobot-train (20 steps). Full runs belong on Nebius GPU.
+# CPU dev smoke via lerobot-train (20 steps, max 200). GPU fine-tune: DevLab lerobot-train or a Job.
 # Usage: bash training/scripts/train_local.sh [POLICY] [DATASET] [STEPS]
 #
 # Examples:
 #   bash training/scripts/train_local.sh act lerobot/pusht 20
-#   bash training/scripts/train_local.sh act mnrozhkov/pizza_hack_v1_fake_ingredients 20
+#   bash training/scripts/train_local.sh act robotpizzacup/robot-pizza-cup-1 20
 #   bash training/scripts/train_local.sh act ../data/robot-pizza-cup-1-ep0-39 20
 set -euo pipefail
 
@@ -31,19 +31,14 @@ if [[ ! -f "$CONFIG" ]]; then
 fi
 
 if [[ "$STEPS" -gt 200 ]]; then
-  echo "Refusing ${STEPS} local steps. Smoke-test with 20, then:" >&2
-  echo "  bash training/scripts/run_serverless.sh --debug ${POLICY}" >&2
-  echo "  bash training/scripts/run_serverless.sh ${POLICY} ${STEPS}" >&2
+  echo "Refusing ${STEPS} steps. train_local.sh is a CPU dev smoke (max 200)." >&2
+  echo "  DevLab: uv run lerobot-train --config_path=training/policy/${POLICY}/config.yaml --policy.device=cuda --steps=${STEPS}" >&2
+  echo "  Job:    bash training/scripts/run_serverless.sh ${POLICY} ${STEPS}" >&2
   exit 1
 fi
 
-if [[ -n "${TRAIN_DEVICE:-}" ]]; then
-  DEVICE="$TRAIN_DEVICE"
-elif [[ "$(uname -s)" == "Darwin" ]]; then
-  DEVICE="mps"
-else
-  DEVICE="cpu"
-fi
+# CPU unless the caller sets TRAIN_DEVICE. GPU fine-tunes do not use this script.
+DEVICE="${TRAIN_DEVICE:-cpu}"
 
 WANDB_ENABLE=false
 if [[ -n "${WANDB_API_KEY:-}" && "${WANDB_MODE:-}" != "disabled" ]]; then
@@ -78,5 +73,5 @@ if [[ "$WANDB_ENABLE" == true && -n "${WANDB_ENTITY:-}" ]]; then
   CMD+=(--wandb.entity="$WANDB_ENTITY")
 fi
 
-echo "Local smoke: policy=$POLICY device=$DEVICE steps=$STEPS (full training is cloud-only)"
+echo "CPU smoke: policy=$POLICY device=$DEVICE steps=$STEPS"
 "${CMD[@]}"

@@ -7,8 +7,8 @@
 # Examples:
 #   set -a && source ../.env && set +a   # repo-root secrets (from so101); also loaded by this script
 #   bash training/scripts/run_serverless.sh --debug act          # 500 steps, 1h, proves CUDA + Hub + FS
-#   bash training/scripts/run_serverless.sh act 30000
-#   bash training/scripts/run_serverless.sh smolvla 20000
+#   bash training/scripts/run_serverless.sh act
+#   bash training/scripts/run_serverless.sh smolvla
 #   RUN_NAME=pizza-alice-act-... bash training/scripts/run_serverless.sh --resume act
 #
 # Required: FILESYSTEM_ID, and usually SUBNET_ID when the project has multiple subnets.
@@ -57,7 +57,7 @@ if [[ -n "${DATASET_REPO_ID:-}" ]]; then
 elif [[ -n "${HF_USER:-}" && -n "${DATASET_NAME:-}" ]]; then
   DATASET="${HF_USER}/${DATASET_NAME}"
 else
-  DATASET="mnrozhkov/pizza_hack_v1_fake_ingredients"
+  DATASET="robotpizzacup/robot-pizza-cup-1"
 fi
 
 STEPS=""
@@ -79,8 +79,10 @@ USER_SLUG="${USER_SLUG//\//-}"
 
 PARENT_ID="${PARENT_ID:-project-e00qfhq9pr00hmgrkch9z4}"
 IMAGE="${IMAGE:-mnrozhkov/pizza-robo-hack:latest}"
-JOB_PLATFORM="${JOB_PLATFORM:-gpu-l40s-a}"
-JOB_PRESET="${JOB_PRESET:-1gpu-24vcpu-96gb}"
+# RTX PRO 6000 (eu-south1, uk-south2). us-central1: gpu-rtx6000 + the same preset.
+# L40S: gpu-l40s-a + 1gpu-24vcpu-96gb. H100: gpu-h100-sxm + 1gpu-16vcpu-200gb.
+JOB_PLATFORM="${JOB_PLATFORM:-gpu-rtx6000-a}"
+JOB_PRESET="${JOB_PRESET:-1gpu-24vcpu-218gb}"
 JOB_DISK="${JOB_DISK:-450Gi}"
 CHECKPOINT_MOUNT="${CHECKPOINT_MOUNT:-/mnt/checkpoints}"
 RESTART_POLICY="never"

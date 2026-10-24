@@ -1,27 +1,81 @@
-# ACT on the hackathon pizza dataset (LeRobot 0.6.x).
+# ACT from scratch on robotpizzacup/robot-pizza-cup-1 (LeRobot 0.6.1).
 #
-# Local smoke (20 steps — do not run a full 30k on a Mac):
-#   uv run lerobot-train --config_path=training/policy/act/config.yaml \
-#     --policy.device=mps --steps=20 --batch_size=2 --policy.push_to_hub=false
+# Dataset: 397 episodes, 176039 frames, 30 fps, one task, SO-101 follower.
+# Cameras: observation.images.front + observation.images.top, 640×480.
+# Mean episode is ~443 frames (~15 s): pick several toppings and place them.
 #
-# Cloud GPU:
-#   bash training/scripts/run_serverless.sh --debug act
-#   bash training/scripts/run_serverless.sh act 30000
+# Horizon: predict 100 steps (3.3 s), execute 50 (1.7 s), then replan.
+# Temporal ensembling is off — it needs n_action_steps=1 and smears the gripper.
+# ~9 epochs at batch 16 (100000 * 16 / 176039). Constant AdamW 1e-5 (ACT preset).
+# RTX PRO 6000 can try --batch_size=32. L40S should stay at 16 (native 640×480).
+#
+# CPU smoke (train_local.sh refuses more than 200 steps):
+#   bash training/scripts/train_pizza.sh act 20
+# GPU:
+#   bash training/scripts/run_serverless.sh act
+#   # or, on a DevLab, lerobot-train --config_path=training/policy/act/config.yaml
 
 policy:
   type: act
   push_to_hub: false
   device: cuda
+  use_amp: true
+  chunk_size: 100
+  n_action_steps: 50
+  n_obs_steps: 1
+  vision_backbone: resnet18
+  pretrained_backbone_weights: ResNet18_Weights.IMAGENET1K_V1
+  use_vae: true
+  kl_weight: 10.0
+  dropout: 0.1
+  optimizer_lr: 1.0e-5
+  optimizer_lr_backbone: 1.0e-5
+  optimizer_weight_decay: 1.0e-4
 
 dataset:
-  repo_id: mnrozhkov/pizza_hack_v1_fake_ingredients
+  repo_id: robotpizzacup/robot-pizza-cup-1
+  video_backend: pyav
+  return_uint8: true
+  image_transforms:
+    enable: true
+    max_num_transforms: 2
+    tfs:
+      brightness:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          brightness: [0.8, 1.2]
+      contrast:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          contrast: [0.8, 1.2]
+      saturation:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          saturation: [0.8, 1.2]
+      hue:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          hue: [-0.03, 0.03]
+      sharpness:
+        weight: 0.0
+        type: Identity
+      affine:
+        weight: 0.0
+        type: Identity
 
-steps: 30000
-batch_size: 8
+seed: 1000
+num_workers: 8
+steps: 100000
+batch_size: 16
 log_freq: 50
-save_freq: 5000
+save_freq: 10000
+env_eval_freq: 0
 
 wandb:
   enable: true
-  disable_artifact: true  # scalars only; checkpoints stay on the shared filesystem
+  disable_artifact: true
   project: robotpizzacup

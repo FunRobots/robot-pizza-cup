@@ -1,29 +1,88 @@
-# SmolVLA fine-tune from lerobot/smolvla_base (LeRobot 0.6.x).
-# GPU only — ~20k steps ≈ 4h on L40S. Cloud canary: --debug (500 steps).
+# SmolVLA fine-tune from lerobot/smolvla_base (LeRobot 0.6.1).
 #
-# smolvla_base expects camera1/2/3. Pizza data is front + top (2 cams), so
-# rename those views and pad the third slot with empty_cameras=1.
+# Same dataset as ACT: robotpizzacup/robot-pizza-cup-1
+# (397 episodes, 176039 frames, 30 fps, front + top, 6-DoF SO-101).
+#
+# smolvla_base was trained with camera1/2/3 and chunk_size 50. Keep that
+# horizon (1.7 s at 30 fps). Pizza has two views, so rename them and pad
+# the third slot with empty_cameras=1.
+#
+# Expert-only, vision encoder frozen: the base checkpoint and the SmolVLA
+# fine-tune recipe. 397 episodes of one task adapt the action expert;
+# unfreezing the 500M VLM overfits the single task sentence and blows the
+# step time. If a frozen run ignores topping appearance, rerun with
+# train_expert_only=false and freeze_vision_encoder=false.
+#
+# ~5.5 epochs at batch 16 (60000 * 16 / 176039). Cosine decay matches
+# that length. Leave use_amp off — the VLM weights are already bfloat16.
+# RTX PRO 6000 / H100 can try --batch_size=32. Do not pass --policy.path
+# on the CLI together with --policy.type (path stays in this file).
+#
+#   bash training/scripts/run_serverless.sh smolvla
 
 policy:
   path: lerobot/smolvla_base
   type: smolvla
   push_to_hub: false
   device: cuda
-  freeze_vision_encoder: false
-  train_expert_only: false
+  use_amp: false
+  chunk_size: 50
+  n_action_steps: 50
   empty_cameras: 1
+  freeze_vision_encoder: true
+  train_expert_only: true
+  train_state_proj: true
+  optimizer_lr: 1.0e-4
+  scheduler_warmup_steps: 1000
+  scheduler_decay_steps: 60000
+  scheduler_decay_lr: 2.5e-6
 
 rename_map:
   "observation.images.front": "observation.images.camera1"
   "observation.images.top": "observation.images.camera2"
 
 dataset:
-  repo_id: mnrozhkov/pizza_hack_v1_fake_ingredients
+  repo_id: robotpizzacup/robot-pizza-cup-1
+  video_backend: pyav
+  return_uint8: true
+  image_transforms:
+    enable: true
+    max_num_transforms: 2
+    tfs:
+      brightness:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          brightness: [0.8, 1.2]
+      contrast:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          contrast: [0.8, 1.2]
+      saturation:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          saturation: [0.8, 1.2]
+      hue:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          hue: [-0.03, 0.03]
+      sharpness:
+        weight: 0.0
+        type: Identity
+      affine:
+        weight: 0.0
+        type: Identity
 
-steps: 20000
-batch_size: 8
+seed: 1000
+num_workers: 8
+steps: 60000
+batch_size: 16
 log_freq: 50
-save_freq: 2000
+save_freq: 10000
+env_eval_freq: 0
 
 wandb:
   enable: true

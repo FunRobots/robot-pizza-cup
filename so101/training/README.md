@@ -1,12 +1,12 @@
 # Policy training
 
-Fine-tune LeRobot policies with `lerobot-train` on the **pizza Hub dataset**. Local runs are **20-step smokes**. Full GPU training is a Nebius AI Job; checkpoints land on a **shared POSIX filesystem**.
+Fine-tune LeRobot policies with `lerobot-train` on the **pizza Hub dataset**. Laptop runs are **CPU smokes (≤200 steps)**. The recommended GPU path is a [DevLab](../docs/devlab.md) (interactive `lerobot-train` on CUDA). This page is the **Job / Docker** path: checkpoints from a Job land on a **shared POSIX filesystem**. Default Job GPU is **RTX PRO 6000**; L40S and H100 are alternatives.
 
 **Arm rollout after training:** [Train and deploy](../docs/train-and-deploy.md)
 
 Run the commands below from `so101`. Hugging Face, W&B, and Nebius settings live in the repo-root `.env` (`../.env` from `so101`; scripts load it automatically). The scripts load that file themselves.
 
-Do these steps **in order**. Never run 30k steps on a Mac.
+Do the Job steps **in order**. A full run belongs on a DevLab or a Job, not in `train_local.sh`.
 
 ## Dataset
 
@@ -14,11 +14,13 @@ YAML configs default to this Hub repo (`DATASET_REPO_ID` in `.env`):
 
 | Field | Value |
 | --- | --- |
-| Hub repo | `mnrozhkov/pizza_hack_v1_fake_ingredients` |
-| Episodes | 70 |
-| Frames | ~42k |
-| Cameras | `observation.images.front`, `observation.images.top` |
-| Task | Pick a pepperoni token and place it on the pizza. |
+| Hub repo | `robotpizzacup/robot-pizza-cup-1` |
+| Episodes | 397 |
+| Frames | 176039 |
+| FPS | 30 |
+| Cameras | `observation.images.front`, `observation.images.top` (640×480) |
+| Robot | SO-101 follower, 6 joint positions |
+| Task | One task: pick the toppings and place them on the pizza. |
 
 After you record your own demos, set `HF_USER`, `DATASET_NAME`, and `DATASET_REPO_ID` in the repo-root `.env` (not `station.env`).
 
@@ -68,7 +70,7 @@ docker inspect "$IMAGE" --format '{{json .Config.Entrypoint}} {{json .Config.Cmd
 
 Participants should **pull** the published image unless they change dependencies.
 
-## 2. Local smoke (pizza, 20 steps)
+## 2. CPU smoke (pizza, 20 steps)
 
 ```bash
 set -a && source ../.env && set +a
@@ -81,13 +83,13 @@ Same as:
 ```bash
 uv run lerobot-train \
   --config_path=training/policy/act/config.yaml \
-  --policy.device=mps \
+  --policy.device=cpu \
   --steps=20 \
   --batch_size=2 \
   --policy.push_to_hub=false
 ```
 
-`train_local.sh` / `train_pizza.sh` **refuse** more than 200 local steps. Expect MPS on Apple Silicon.
+`train_local.sh` / `train_pizza.sh` **refuse** more than 200 steps and always use `cpu` (`TRAIN_DEVICE` overrides the device).
 
 ## 3. Docker CPU smoke (same amd64 image)
 
@@ -133,22 +135,26 @@ Poll `job get` (do not `logs --follow`). Healthy: `Using device: cuda`, pizza da
 | `multiple subnets` | set `SUBNET_ID` |
 | Dataset 404 | `DATASET_REVISION` and `HF_TOKEN` in `.env` |
 
-Do **not** start 30k until this job **completes** and files exist under `/mnt/checkpoints/$HF_USER/<job-name>/`.
+Do **not** start a full run until this job **completes** and files exist under `/mnt/checkpoints/$HF_USER/<job-name>/`.
 
 ## 6. Full pizza run
 
-Same image, new unique output dir. Default: 1× L40S, 6h.
+Same image, new unique output dir. Default: 1× RTX PRO 6000 (`gpu-rtx6000-a` / `1gpu-24vcpu-218gb`), 6h. L40S: `JOB_PLATFORM=gpu-l40s-a` `JOB_PRESET=1gpu-24vcpu-96gb`. H100: `JOB_PLATFORM=gpu-h100-sxm` `JOB_PRESET=1gpu-16vcpu-200gb`. Set platform and preset together.
 
 ```bash
-bash training/scripts/run_serverless.sh act 30000
+bash training/scripts/run_serverless.sh act
 # or
-bash training/scripts/run_serverless.sh smolvla 20000
+bash training/scripts/run_serverless.sh smolvla
+# or
+bash training/scripts/run_serverless.sh diffusion
 ```
+
+Step counts and batch sizes come from `training/policy/<policy>/config.yaml` (ACT 100k / 16, SmolVLA 60k / 16, diffusion 60k / 32). A 6h job timeout will not finish ACT; raise `JOB_TIMEOUT` or run on a DevLab. Checkpoints land every `save_freq` (10000).
 
 Optional Hub copy for the robot laptop (no FS mount on the Mac):
 
 ```bash
-POLICY_PUSH_TO_HUB=true bash training/scripts/run_serverless.sh act 30000
+POLICY_PUSH_TO_HUB=true bash training/scripts/run_serverless.sh act
 # Hub repo defaults to $HF_USER/pizza-<policy> (override with POLICY_REPO_ID)
 ```
 
@@ -180,7 +186,7 @@ Or `bash scripts/rollout.sh "$HF_USER/pizza-smolvla"` if you pushed (default Hub
 | `train_local.sh` | Same, explicit policy/dataset/steps |
 | `build_docker.sh` | Build/push `:latest` or `:deps` |
 | `run_docker.sh` | CPU Docker smoke |
-| `run_serverless.sh` | **Only** cloud entry: `nebius ai job create` |
+| `run_serverless.sh` | Job entry: `nebius ai job create` (DevLab uses `lerobot-train` directly) |
 | `download_checkpoint.sh` | Copy a run from a local FS mount |
 | `train_entrypoint.sh` | Image entrypoint (fresh train or resume) |
 
@@ -188,7 +194,7 @@ Or `bash scripts/rollout.sh "$HF_USER/pizza-smolvla"` if you pushed (default Hub
 
 YAML: `training/policy/{act,smolvla,diffusion}/config.yaml`. CLI flags override YAML.
 
-Serverless AI is **one VM per job** (no multi-node). Default preset: `gpu-l40s-a` / `1gpu-24vcpu-96gb`.
+Serverless AI is **one VM per job** (no multi-node). Default: `gpu-rtx6000-a` / `1gpu-24vcpu-218gb` (RTX PRO 6000). Same preset with `gpu-rtx6000` in `us-central1`. L40S: `gpu-l40s-a` / `1gpu-24vcpu-96gb`. H100: `gpu-h100-sxm` / `1gpu-16vcpu-200gb`.
 
 ## Resume from the latest checkpoint
 
@@ -235,7 +241,7 @@ The entrypoint **does** resume when `checkpoints/last` exists, so a reclaim *aft
 For the hackathon use **on-demand** (no `--preemptible`). If you opt in:
 
 ```bash
-bash training/scripts/run_serverless.sh --preemptible act 30000
+bash training/scripts/run_serverless.sh --preemptible act
 ```
 
 you accept lost work since the last `save_freq` and a possible silent retrain if the FS write failed.
@@ -252,10 +258,10 @@ you accept lost work since the last `save_freq` and a possible silent retrain if
 
 ## Policy profiles (pizza dataset)
 
-| Profile | Policy | Batch | Steps | Where | Checkpoint |
-| --- | --- | --- | --- | --- | --- |
-| Install check | ACT | 2 | 20 | Mac MPS / Docker CPU | local `outputs/` (throwaway) |
-| Cloud canary | ACT | 8 | 500 | 1× L40S `--debug` | shared FS |
-| First robot policy | ACT | 8 | 30k–80k | 1× L40S | FS (+ optional Hub) → rollout |
-| Headline VLA | SmolVLA | 8 | 20k | 1× L40S | same; YAML maps `front`/`top` → `camera1`/`camera2` |
-| Optional | Diffusion | 8 | 20k+ | 1× L40S | same |
+| Profile | Policy | Batch | Steps | Epochs (approx.) | Where | Checkpoint |
+| --- | --- | --- | --- | --- | --- | --- |
+| Install check | ACT | 2 | 20 | — | CPU / Docker CPU | local `outputs/` (throwaway) |
+| Job canary | ACT | 16 | 500 | — | RTX PRO 6000 `--debug` | shared FS |
+| First robot policy | ACT | 16 | 100k | 9 | RTX PRO 6000 Job or DevLab | FS (+ optional Hub) → rollout |
+| Headline VLA | SmolVLA | 16 | 60k | 5.5 | RTX PRO 6000 Job or DevLab | same; YAML maps `front`/`top` → `camera1`/`camera2`, `empty_cameras=1` |
+| Optional | Diffusion | 32 | 60k | 11 | RTX PRO 6000 Job or DevLab | same; images resized to 240×320 |
