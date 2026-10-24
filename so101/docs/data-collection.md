@@ -32,7 +32,7 @@ Set these before recording:
 | Variable | File | Purpose |
 | --- | --- | --- |
 | `HF_USER` | `.env` | Hub **namespace**: your username *or* an org (e.g. `RobotPizzaCup`) |
-| `DATASET_NAME` | `.env` | Dataset slug, e.g. `pizza_topping_v1` |
+| `DATASET_NAME` | `.env` | Local dataset slug. For the Hub, use `team-<N>-<team-name>-<dataset-name>-<version>` — [Hub names](../../README.md#hub-dataset-names) |
 | `TASK` | `station.env` | Natural-language task sentence — **must match train and rollout verbatim** |
 | `NUM_EPISODES` | `station.env` | Target episode count (default 50) |
 | `EPISODE_TIME_S` | `station.env` | Seconds of teleop per episode (default 30) |
@@ -148,31 +148,49 @@ Motor calibration for each arm id:
 
 Keyed by `FOLLOWER_ID` and `LEADER_ID`. Setup procedure: [SO-101 README — Calibrate](../README.md#3-calibrate).
 
+<a id="upload"></a>
+
 ## SO-101 — Upload to Hugging Face Hub
 
 `scripts/record.sh` saves **locally only** (`--dataset.push_to_hub=false`). LeRobot’s default is to upload; this repo turns that off. Push later with `hf upload` when you choose. See [il_robots — dataset upload](https://huggingface.co/docs/lerobot/il_robots#dataset-upload).
+
+Hub repo name: [`team-<N>-<team-name>-<dataset-name>-<version>`](../../README.md#hub-dataset-names). `record.sh` still stores a timestamped folder locally. Upload that folder to the team repo id, without the timestamp, so the URL stays on `v1` until you intentionally bump the version.
+
+```text
+RobotPizzaCup/team-3-your-team-so101-precision-topping-v1
+```
+
+Put the dataset name in the slug (`so101-precision-topping`, `so101-recipe-assembly`). A second arm or a camera change gets a new dataset name or a new version, so it does not overwrite this repo.
+
+### Dataset card
+
+Before upload, add `README.md` in the local dataset folder (next to `meta/`). That file is the Hub dataset card.
+
+```markdown
+# team-3-your-team-so101-precision-topping-v1
+
+- **Task:** place one pepperoni on the pizza
+- **Episodes:** 50
+- **Robot:** SO-101 follower, 6-DoF, leader teleop
+- **Cameras:** front workspace (OpenCV index 0); overhead (index 2)
+- **Varied:** pepperoni start position. Pizza pose, cameras, lighting, and task text stayed fixed.
+```
+
+Match **Task** to `TASK` in `station.env`. List every camera that was recorded. Under **Varied**, say what changed between episodes and what you held still.
 
 ### Choose destination in `.env`
 
 | Destination | `HF_USER` value | Example Hub URL |
 | --- | --- | --- |
-| Your account | `mnrozhkov` | `https://huggingface.co/datasets/mnrozhkov/pizza_hack_v1_<timestamp>` |
-| Event org | `RobotPizzaCup` | `https://huggingface.co/datasets/RobotPizzaCup/pizza_hack_v1_<timestamp>` |
+| Your account | `mnrozhkov` | `https://huggingface.co/datasets/mnrozhkov/team-3-your-team-so101-precision-topping-v1` |
+| Event org | `RobotPizzaCup` | `https://huggingface.co/datasets/RobotPizzaCup/team-3-your-team-so101-precision-topping-v1` |
 
-Example — upload to your account:
-
-```bash
-# .env
-HF_USER=mnrozhkov
-DATASET_NAME=pizza_hack_v1
-```
-
-Example — upload to the hackathon org:
+`HF_USER` is only the namespace. The team slug is `DATASET_NAME`:
 
 ```bash
-# .env
+# .env — namespace is you, or RobotPizzaCup if you can create datasets there
 HF_USER=RobotPizzaCup
-DATASET_NAME=pizza_hack_v1
+DATASET_NAME=team-3-your-team-so101-precision-topping-v1
 ```
 
 Then record as usual:
@@ -201,21 +219,15 @@ Example output:
     upload: uv run hf upload <namespace>/<repo> "..." --repo-type dataset
 ```
 
-Then upload (use the **path** line from the script, not a guessed path):
+Then upload the timestamped folder to the team repo id (use the **path** line from the script, not a guessed path). Add `README.md` in that folder first.
 
 ```bash
-# To your account
-uv run hf upload mnrozhkov/pizza_hack_v1 \
-  ~/.cache/huggingface/lerobot/your-hf-username/pizza_topping_v1_20260919_145422 \
-  --repo-type dataset
-
-# To the org
-uv run hf upload RobotPizzaCup/pizza_hack_v1 \
-  ~/.cache/huggingface/lerobot/your-hf-username/pizza_topping_v1_20260919_145422 \
+uv run hf upload RobotPizzaCup/team-3-your-team-so101-precision-topping-v1 \
+  ~/.cache/huggingface/lerobot/your-hf-username/team-3-your-team-so101-precision-topping-v1_20260919_145422 \
   --repo-type dataset
 ```
 
-Use the **exact local folder path** (namespace folder + timestamp suffix from the recording session). Add `--private` to keep the dataset private until you publish it.
+Use the **exact local folder path**. Add `--private` to keep the dataset private until you publish it. The same command updates an existing repo. Bump `-v1` to `-v2` when the task sentence, cameras, or episode timing change.
 
 ### Recording does not upload
 

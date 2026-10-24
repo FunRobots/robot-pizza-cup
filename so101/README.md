@@ -277,6 +277,8 @@ Defaults in `station.env`: 50 episodes × 30 s + 10 s reset. That is the SmolVLA
 
 **Data quality beats model choice.** First 50 episodes: one object, fixed pizza pose, fixed camera, one operator, deliberate grasps.
 
+Hub repo name and dataset card: [Upload](docs/data-collection.md#upload). Pattern: `team-<N>-<team-name>-<dataset-name>-<version>`.
+
 After recording, `record.sh` prints a Rerun command. Preview the saved episodes (video + joints):
 
 ```bash

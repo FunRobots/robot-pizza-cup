@@ -159,6 +159,8 @@ Practice teleop until the follower tracks smoothly (including gripper) before ta
 
 The SmolVLA trainer in norma-core reads that Station parquet directly. To build a LeRobot **v2.1** dataset from the same files, use [Convert to LeRobot](docs/data-collection.md#convert-to-lerobot) (`scripts/export_to_lerobot.py`). That folder is v2.1; the SO-101 stack in this repo trains on LeRobot v3.
 
+Hub upload (Station parquet or the v2.1 folder) and the dataset card: [Upload](docs/data-collection.md#upload). Repo name: `team-<N>-<team-name>-<dataset-name>-<version>`.
+
 ---
 
 ## 5. Train and deploy

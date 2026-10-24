@@ -81,12 +81,30 @@ Upstream: [norma-core](https://github.com/norma-core/norma-core/tree/v0.1.0-beta
 | --- | --- |
 | [SO-101 setup](so101/README.md) | Install, calibrate, collect, train, deploy |
 | [ElRobot setup](elrobot/README.md) | Install, calibrate, collect, train, deploy |
-| [SO-101 data collection](so101/docs/data-collection.md) | `lerobot-record`, H.264, LeRobot v3 |
-| [ElRobot data collection](elrobot/docs/data-collection.md) | Station tags, parquet export, LeRobot v2.1 conversion |
+| [SO-101 data collection](so101/docs/data-collection.md) | `lerobot-record`, H.264, LeRobot v3, Hub upload |
+| [ElRobot data collection](elrobot/docs/data-collection.md) | Station tags, parquet export, LeRobot v2.1 conversion, Hub upload |
 | [SO-101 train and deploy](so101/docs/train-and-deploy.md) | Local smoke, Nebius GPU, rollout |
 | [ElRobot train and deploy](elrobot/docs/train-and-deploy.md) | SmolVLA fine-tune, deploy, evaluation |
 
 The two datasets are separate. Norma's SmolVLA trainer reads Station parquet. `elrobot/scripts/export_to_lerobot.py` writes a LeRobot **v2.1** folder from those parquets. SO-101 training reads LeRobot **v3**.
+
+## Hub dataset names
+
+Push each collection to the Hugging Face Hub under your team slug. Brackets below are placeholders; the repo name itself is lowercase letters, digits, and hyphens.
+
+```text
+<namespace>/team-<N>-<team-name>-<dataset-name>-<version>
+```
+
+| Piece | Example |
+| --- | --- |
+| Namespace (`HF_USER`) | your username, or `RobotPizzaCup` if you can create datasets there |
+| Team | `team-3-your-team` |
+| Dataset | arm plus task, e.g. `so101-precision-topping` or `elrobot-precision-topping` |
+| Version | `v1`, then `v2` when the task sentence, cameras, or episode timing change |
+| Repo id | `RobotPizzaCup/team-3-your-team-so101-precision-topping-v1` |
+
+Put a `README.md` dataset card in the folder you upload. Cover **task**, **number of episodes**, **robot**, **cameras**, and **what you varied**. Steps: [SO-101 upload](so101/docs/data-collection.md#upload) · [ElRobot upload](elrobot/docs/data-collection.md#upload).
 
 ## Local data
 
