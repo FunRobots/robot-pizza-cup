@@ -110,11 +110,48 @@ One row = one frame. Schema (v0.1.0-beta.10 export):
 
 ElRobot has **8** servos per bus; exported `joints` lists reflect what Station recorded on the follower/leader buses during teleop.
 
+<a id="convert-to-lerobot"></a>
+
+## Convert a Station parquet to LeRobot v2.1
+
+`scripts/export_to_lerobot.py` turns a **folder** of Station `.parquet` files into one LeRobot **v2.1** dataset (v2.0 if you pass `--format-version v2.0`). Use it when a LeRobot v2.1 loader should read ElRobot demonstrations.
+
+NormaCore `smolvla_py` trains on the Station parquet itself. Steps for that path: [Train and deploy](train-and-deploy.md). SO-101 recording and `lerobot-train` in this repo use LeRobot **0.6.1 / dataset v3** — see [SO-101 data collection](../../so101/docs/data-collection.md). A folder from this script is v2.1, aimed at the [LeRobot v0.3.3 dataset layout](https://github.com/huggingface/lerobot/tree/v0.3.3/src/lerobot/datasets).
+
+The CLI takes a directory and searches it recursively. One exported file such as `data/elrobot-pizza.parquet` has to sit in a directory of its own. An existing output directory is refused. Each `(source file, episode_start_ns)` pair becomes one episode. Files are not stitched together.
+
+From `elrobot`:
+
+```bash
+python3 -m venv .venv-export
+.venv-export/bin/pip install numpy pyarrow av pillow datasets
+mkdir -p ../data/elrobot-parquets
+cp ../data/elrobot-pizza.parquet ../data/elrobot-parquets/
+.venv-export/bin/python scripts/export_to_lerobot.py \
+  ../data/elrobot-parquets \
+  ../data/elrobot-lerobot
+```
+
+Video mode needs FFmpeg with **libx264** on `PATH` (`brew install ffmpeg` on macOS). `.venv-export/` is gitignored. Output under `data/` is gitignored; do not commit it. `meta/conversion.json` stores the absolute input path, and `meta/source_frames/` keeps the original non-image columns.
+
+| Output | Source |
+| --- | --- |
+| `observation.state` | `joints[].position_norm` |
+| `action` | `joints[].goal_norm` on the **same** row |
+| `observation.images.camera_N` | `images[N].jpeg`, original width and height |
+| `task` | Station `task` string |
+
+Normalized joint values are copied through. There is no rescaling and no shift of `action` to the next frame. FPS is the median gap between source timestamps, unless you pass `--fps`. Each episode is resampled onto that grid with nearest-neighbor frames, so rows can repeat or drop. A long gap does not fail the run; `max_source_gap_seconds` is recorded per episode in `meta/conversion.json`.
+
+Default names are `joint_0`… and `camera_0`… in Station list order. Pass `--joint-names` and `--camera-names` only when you know that order (one name per joint, one per camera). ElRobot has **8** servos. The whole dataset must keep the same joint count, camera count, and per-camera resolution; mixed sizes fail because images are never resized. Odd width or height is encoded as `yuv444p`; even sizes (including 1280×720) use `yuv420p`. H.264 CRF 18 is lossy. `--image-storage image` stores the original JPEG bytes and writes no MP4s.
+
+Each source file is loaded whole, JPEGs included. A long recording can exhaust memory. The converter also decodes every selected frame to compute image statistics.
+
 ## After export — training and deploy
 
-Fine-tune and run policies: **[Train and deploy](train-and-deploy.md)** (SmolVLA in `smolvla_py`, CUDA, 6 vs 8 DoF limits).
+Fine-tune and run policies on the Station parquet: **[Train and deploy](train-and-deploy.md)** (SmolVLA in `smolvla_py`, CUDA, 6 vs 8 DoF limits).
 
-For SO-101 + `lerobot-train`, use [SO-101 data collection](../../so101/docs/data-collection.md).
+For a LeRobot v2.1 folder, use a loader that reads that format. Point training at `observation.state`, `action`, and `observation.images.*` as written above, with all 8 joint dimensions. SO-101 + `lerobot-train`: [SO-101 data collection](../../so101/docs/data-collection.md).
 
 ## Data quality checklist
 

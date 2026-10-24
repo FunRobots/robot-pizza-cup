@@ -157,6 +157,8 @@ bash scripts/export_dataset.sh <START_FRAME> <END_FRAME>
 
 Practice teleop until the follower tracks smoothly (including gripper) before tagging. Default export keeps episodes ≥ **45 s** (`EPISODE_DURATION`); wait **~8 s** between demos. Details: [data collection](docs/data-collection.md).
 
+The SmolVLA trainer in norma-core reads that Station parquet directly. To build a LeRobot **v2.1** dataset from the same files, use [Convert to LeRobot](docs/data-collection.md#convert-to-lerobot) (`scripts/export_to_lerobot.py`). That folder is v2.1; the SO-101 stack in this repo trains on LeRobot v3.
+
 ---
 
 ## 5. Train and deploy
@@ -193,6 +195,7 @@ scripts/run.sh              start or stop Station
 scripts/calibrate.sh        follower auto-cal (upstream example)
 scripts/teleop.sh           leader → follower (upstream example)
 scripts/export_dataset.sh   history range → parquet + mp4
+scripts/export_to_lerobot.py  Station parquet folder → LeRobot v2.1 dataset
 scripts/python_env.sh       optional PYTHONPATH for elrobot/examples/
 docs/                       data collection, train/deploy, troubleshooting
 norma-core/                 gitignored checkout (v0.1.0-beta.10); do not edit

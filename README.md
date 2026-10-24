@@ -69,6 +69,7 @@ bash scripts/run.sh
 | Calibrate follower | `bash scripts/calibrate.sh` |
 | Teleop | `bash scripts/teleop.sh` |
 | Export parquet | `bash scripts/export_dataset.sh <START> <END>` |
+| Convert to LeRobot v2.1 | [data collection](elrobot/docs/data-collection.md#convert-to-lerobot) (`scripts/export_to_lerobot.py`) |
 
 Upstream: [norma-core](https://github.com/norma-core/norma-core/tree/v0.1.0-beta.10)
 
@@ -81,11 +82,11 @@ Upstream: [norma-core](https://github.com/norma-core/norma-core/tree/v0.1.0-beta
 | [SO-101 setup](so101/README.md) | Install, calibrate, collect, train, deploy |
 | [ElRobot setup](elrobot/README.md) | Install, calibrate, collect, train, deploy |
 | [SO-101 data collection](so101/docs/data-collection.md) | `lerobot-record`, H.264, LeRobot v3 |
-| [ElRobot data collection](elrobot/docs/data-collection.md) | Station tags, parquet export |
+| [ElRobot data collection](elrobot/docs/data-collection.md) | Station tags, parquet export, LeRobot v2.1 conversion |
 | [SO-101 train and deploy](so101/docs/train-and-deploy.md) | Local smoke, Nebius GPU, rollout |
 | [ElRobot train and deploy](elrobot/docs/train-and-deploy.md) | SmolVLA fine-tune, deploy, evaluation |
 
-The two datasets are not interchangeable. A Station parquet will not open in `lerobot-train` without conversion. Norma's SmolVLA trainer reads Station parquet; SO-101 training reads LeRobot v3.
+The two datasets are separate. Norma's SmolVLA trainer reads Station parquet. `elrobot/scripts/export_to_lerobot.py` writes a LeRobot **v2.1** folder from those parquets. SO-101 training reads LeRobot **v3**.
 
 ## Local data
 

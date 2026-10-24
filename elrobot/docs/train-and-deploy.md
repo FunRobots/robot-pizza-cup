@@ -9,6 +9,7 @@ Run commands from `elrobot` unless a step says `cd norma-core/...`.
 ## Contents
 
 - [Fine-tune (SmolVLA)](#fine-tune)
+- [LeRobot v2.1 dataset](#lerobot-v2)
 - [Deploy on the arm](#deploy-on-arm)
 - [Evaluation](#evaluation)
 - [Limits and troubleshooting](#limits)
@@ -40,6 +41,16 @@ uv run python scripts/train.py \
 Pass several parquet files to `--parquets`. Cloud notes: `norma-core/software/ai/smolvla_py/nebius.md`.
 
 `TASK` in training data must match the sentence in `elrobot.env` and at deploy.
+
+---
+
+<a id="lerobot-v2"></a>
+
+## LeRobot v2.1 dataset
+
+`smolvla_py` reads Station parquet. `scripts/export_to_lerobot.py` is the separate step that writes a LeRobot **v2.1** folder from those files. Command, column mapping, and limits: [Convert to LeRobot](data-collection.md#convert-to-lerobot).
+
+`observation.state` is `position_norm` and `action` is `goal_norm` from the same source row. The script keeps every joint in list order (8 on ElRobot). Load that folder with a v2.1 reader. The SO-101 environment in this repo is LeRobot 0.6.1 and expects dataset v3.
 
 ---
 
