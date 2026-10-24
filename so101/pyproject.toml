@@ -5,7 +5,7 @@ description = "Starter repo for the Robotics Pizza Hackathon: SO-101 + LeRobot."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "lerobot[core_scripts,training,feetech,smolvla,diffusion,pi,pusht]==0.6.1",
+    "lerobot[core_scripts,training,feetech,smolvla,diffusion,pi,groot,pusht]==0.6.1",
     "boto3>=1.35,<2",
     "pydantic>=2.6,<3",
     "rich>=13.7,<14",

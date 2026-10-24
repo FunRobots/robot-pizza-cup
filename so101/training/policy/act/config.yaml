@@ -6,7 +6,10 @@
 #
 # Horizon: predict 100 steps (3.3 s), execute 50 (1.7 s), then replan.
 # Temporal ensembling is off — it needs n_action_steps=1 and smears the gripper.
-# ~9 epochs at batch 16 (100000 * 16 / 176039). Constant AdamW 1e-5 (ACT preset).
+# ~2.7 epochs at batch 16 (30000 * 16 / 176039). A 30k-step batch-8 run on this
+# dataset was still falling at 15k (L1 ~0.25) and only reached L1 ~0.20 at 30k
+# (1.4 epochs). Constant AdamW 1e-5 (ACT preset). Stop there and roll out;
+# another 70k steps does not match that curve.
 # RTX PRO 6000 can try --batch_size=32. L40S should stay at 16 (native 640×480).
 #
 # CPU smoke (train_local.sh refuses more than 200 steps):
@@ -69,7 +72,7 @@ dataset:
 
 seed: 1000
 num_workers: 8
-steps: 100000
+steps: 30000
 batch_size: 16
 log_freq: 50
 save_freq: 10000

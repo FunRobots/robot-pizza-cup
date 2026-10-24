@@ -9,6 +9,8 @@
 #   bash training/scripts/run_serverless.sh --debug act          # 500 steps, 1h, proves CUDA + Hub + FS
 #   bash training/scripts/run_serverless.sh act
 #   bash training/scripts/run_serverless.sh smolvla
+#   bash training/scripts/run_serverless.sh groot
+#   bash training/scripts/run_serverless.sh pi05
 #   RUN_NAME=pizza-alice-act-... bash training/scripts/run_serverless.sh --resume act
 #
 # Required: FILESYSTEM_ID, and usually SUBNET_ID when the project has multiple subnets.
