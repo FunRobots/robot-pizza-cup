@@ -8,9 +8,10 @@
 # Official SO-101 fine-tune: chunk 16, relative arm actions, gripper
 # absolute, backbone frozen (tune_llm / tune_visual stay false; projector,
 # diffusion head, and vlln stay true). Their example uses batch 64.
-# Batch 16 matches the other pizza YAMLs and fits an L40S; the RTX PRO
-# 6000 can try --batch_size=32. max_steps is the warmup clock (5% of the
-# run), so it stays equal to steps.
+# Batch 16 matches the other pizza YAMLs and fits an L40S. On an RTX PRO
+# 6000, batch 32 is the recommended size: pass --batch_size=32. The
+# default stays 16 so an L40S launch is unchanged. max_steps is the
+# warmup clock (5% of the run), so it stays equal to steps.
 #
 # Flash-attention stays off unless flash-attn is installed for this
 # torch/CUDA. SDPA is the fallback and is the same training setup.
