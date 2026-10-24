@@ -67,6 +67,7 @@ This pulls LeRobot **0.6.1** with:
 | `smolvla` | headline VLA |
 | `diffusion` | second visuomotor baseline |
 | `pi` | π0 / π0.5 deps |
+| `groot` | GR00T N1.7, front + top |
 | `pusht` | tiny public dataset for a no-robot smoke test |
 
 ACT has no extra — it ships in the core package.
@@ -385,13 +386,13 @@ uv run lerobot-train \
   --dataset.repo_id=robotpizzacup/robot-pizza-cup-1
 ```
 
-Steps and batch size come from the YAML (ACT 100k / 16). To push the checkpoint to the Hub at the end of the run, pass `--policy.push_to_hub=true --policy.type=act --policy.repo_id="$HF_USER/pizza-act"`.
+Steps and batch size come from the YAML (ACT 30k / 16). To push the checkpoint to the Hub at the end of the run, pass `--policy.push_to_hub=true --policy.type=act --policy.repo_id="$HF_USER/pizza-act"`.
 
 **Job (optional):** [Train with a Job](docs/train-and-deploy.md#cloud-training). `PARENT_ID` / `IMAGE` in `.env.example` are organizer defaults. Default platform is `gpu-rtx6000-a` / `1gpu-24vcpu-218gb`.
 
 ```bash
 bash training/scripts/run_serverless.sh --debug act   # 500 steps, 1h, CUDA + Hub + FS
-bash training/scripts/run_serverless.sh act           # ACT, 100k steps from YAML
+bash training/scripts/run_serverless.sh act           # ACT, 30k steps from YAML
 bash training/scripts/run_serverless.sh smolvla       # SmolVLA, 60k steps from YAML
 ```
 
@@ -401,9 +402,11 @@ Vision-encoder flags for SmolVLA are already in `training/policy/smolvla/config.
 | --- | --- | --- | --- | --- | --- |
 | Install check | ACT | 2 | 20 | CPU / Docker CPU | throwaway local |
 | Job canary | ACT | 16 | 500 | RTX PRO 6000 `--debug` | shared FS |
-| First robot policy | ACT | 16 | 100k | RTX PRO 6000 Job or DevLab | FS / Hub → rollout |
+| First robot policy | ACT | 16 | 30k | RTX PRO 6000 Job or DevLab | FS / Hub → rollout |
 | Headline VLA | SmolVLA | 16 | 60k | RTX PRO 6000 Job or DevLab | same |
 | Optional | Diffusion | 32 | 60k | RTX PRO 6000 Job or DevLab | same |
+| Two-camera VLA | GR00T N1.7 | 16 | 20k | RTX PRO 6000 Job or DevLab | front + top |
+| Later VLA | π0.5 | 16 | 30k | RTX PRO 6000 Job or DevLab | expert-only, front + top |
 
 L40S (`gpu-l40s-a` / `1gpu-24vcpu-96gb`) and H100 (`gpu-h100-sxm` / `1gpu-16vcpu-200gb`) use the same step counts. Set `JOB_PLATFORM` and `JOB_PRESET` together.
 
@@ -436,7 +439,8 @@ If ACT is below ~70% on the **same** scene you trained on, collect more consiste
 | ACT | core | ~1 GB | First success, single task |
 | Diffusion | `diffusion` | ~5 GB | Multimodal actions |
 | SmolVLA | `smolvla` | ~4 GB+ | Language / multi-task, hackathon headline |
-| π0 / π0.5 | `pi` | ~16 GB | After ACT works, 24 GB+ GPU |
+| GR00T N1.7 | `groot` | ~25 GB | Front + top VLA, after ACT |
+| π0.5 | `pi` | ~16 GB+ | Later front + top run, expert-only |
 
 ---
 

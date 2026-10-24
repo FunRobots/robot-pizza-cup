@@ -1,0 +1,88 @@
+# π0.5 later run on robotpizzacup/robot-pizza-cup-1 (LeRobot 0.6.1).
+#
+# Front + top stay front + top. pretrained_path loads weights only, so
+# feature names come from this dataset. Do not add rename_map: with
+# pretrained_path that drops the images. empty_cameras=1 pads the third
+# slot the base model was built with. Images are resized to 224×224.
+#
+# Expert-only, vision encoder frozen, same idea as the SmolVLA YAML.
+# Accept the google/paligemma-3b-pt-224 license and `hf auth login`
+# before the first download. MEAN_STD avoids a missing q01/q99 on the
+# pizza stats. Actions stay absolute so this is comparable to ACT.
+# Relative arm actions need a stats recompute first (gripper excluded).
+#
+# ~2.7 epochs at batch 16 (30000 * 16 / 176039). L40S should try
+# --batch_size=8. Leave use_amp off; dtype is bfloat16.
+#
+#   bash training/scripts/run_serverless.sh pi05
+
+policy:
+  type: pi05
+  pretrained_path: lerobot/pi05_base
+  push_to_hub: false
+  device: cuda
+  use_amp: false
+  dtype: bfloat16
+  chunk_size: 50
+  n_action_steps: 50
+  empty_cameras: 1
+  freeze_vision_encoder: true
+  train_expert_only: true
+  gradient_checkpointing: true
+  use_relative_actions: false
+  normalization_mapping:
+    ACTION: MEAN_STD
+    STATE: MEAN_STD
+    VISUAL: IDENTITY
+  optimizer_lr: 2.5e-5
+  scheduler_warmup_steps: 1000
+  scheduler_decay_steps: 30000
+  scheduler_decay_lr: 2.5e-6
+
+dataset:
+  repo_id: robotpizzacup/robot-pizza-cup-1
+  video_backend: pyav
+  return_uint8: true
+  image_transforms:
+    enable: true
+    max_num_transforms: 2
+    tfs:
+      brightness:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          brightness: [0.8, 1.2]
+      contrast:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          contrast: [0.8, 1.2]
+      saturation:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          saturation: [0.8, 1.2]
+      hue:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          hue: [-0.03, 0.03]
+      sharpness:
+        weight: 0.0
+        type: Identity
+      affine:
+        weight: 0.0
+        type: Identity
+
+seed: 1000
+num_workers: 8
+steps: 30000
+batch_size: 16
+log_freq: 50
+save_freq: 10000
+env_eval_freq: 0
+
+wandb:
+  enable: true
+  disable_artifact: true
+  project: robotpizzacup

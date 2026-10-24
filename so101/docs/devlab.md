@@ -77,7 +77,7 @@ A notebook uses the same venv.
 
 ## Fine-tune
 
-From `so101`, on the DevLab. Checkpoints land under `outputs/train/` on the container disk. Steps and batch size come from the policy YAML (ACT 100k / 16, SmolVLA 60k / 16, diffusion 60k / 32).
+From `so101`, on the DevLab. Checkpoints land under `outputs/train/` on the container disk. Steps and batch size come from the policy YAML (ACT 30k / 16, SmolVLA 60k / 16, diffusion 60k / 32).
 
 ```bash
 cd so101

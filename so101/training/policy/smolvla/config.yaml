@@ -14,7 +14,9 @@
 # train_expert_only=false and freeze_vision_encoder=false.
 #
 # ~5.5 epochs at batch 16 (60000 * 16 / 176039). Cosine decay matches
-# that length. Leave use_amp off — the VLM weights are already bfloat16.
+# that length. A 10k probe auto-scales this cosine into 10k steps, so its
+# learning rate hits the floor early and does not set this budget.
+# Leave use_amp off — the VLM weights are already bfloat16.
 # RTX PRO 6000 / H100 can try --batch_size=32. Do not pass --policy.path
 # on the CLI together with --policy.type (path stays in this file).
 #

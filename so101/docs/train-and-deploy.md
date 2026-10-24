@@ -136,7 +136,7 @@ uv run lerobot-train \
   --dataset.repo_id=robotpizzacup/robot-pizza-cup-1
 ```
 
-Steps and batch size come from the YAML (ACT 100k / 16). Checkpoints stay on the DevLab disk under `outputs/train/`. SmolVLA: `--config_path=training/policy/smolvla/config.yaml --policy.type=smolvla --dataset.repo_id=robotpizzacup/robot-pizza-cup-1` (60k / 16). To push to the Hub at the end of training so the laptop can roll the policy out directly, pass `--policy.push_to_hub=true --policy.type=act --policy.repo_id="$HF_USER/pizza-act"`.
+Steps and batch size come from the YAML (ACT 30k / 16). Checkpoints stay on the DevLab disk under `outputs/train/`. SmolVLA: `--config_path=training/policy/smolvla/config.yaml --policy.type=smolvla --dataset.repo_id=robotpizzacup/robot-pizza-cup-1` (60k / 16). To push to the Hub at the end of training so the laptop can roll the policy out directly, pass `--policy.push_to_hub=true --policy.type=act --policy.repo_id="$HF_USER/pizza-act"`.
 
 ---
 
@@ -170,7 +170,7 @@ cd so101
 # Canary: 500 steps, 1h timeout, still mounts the filesystem
 bash training/scripts/run_serverless.sh --debug act
 
-# Full ACT (100k steps, batch 16 — from the YAML)
+# Full ACT (30k steps, batch 16 — from the YAML)
 bash training/scripts/run_serverless.sh act
 
 # SmolVLA (60k steps, batch 16)
@@ -358,7 +358,7 @@ Default GPU below is RTX PRO 6000. The same step counts run on L40S or H100 if y
 | --- | --- | --- | --- | --- | --- |
 | Install check | ACT | 20 | 2 | CPU / Docker CPU | throwaway local |
 | Job canary | ACT | 500 | 16 | RTX PRO 6000 `--debug` | shared FS |
-| First robot policy | ACT | 100k | 16 | RTX PRO 6000 Job or DevLab | FS / Hub → rollout |
+| First robot policy | ACT | 30k | 16 | RTX PRO 6000 Job or DevLab | FS / Hub → rollout |
 | Headline VLA | SmolVLA | 60k | 16 | RTX PRO 6000 Job or DevLab | same |
 | Optional | Diffusion | 60k | 32 | RTX PRO 6000 Job or DevLab | same |
 

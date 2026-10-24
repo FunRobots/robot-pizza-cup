@@ -1,0 +1,89 @@
+# GR00T N1.7 on robotpizzacup/robot-pizza-cup-1 (LeRobot 0.6.1).
+#
+# Front + top, the cameras this dataset already has. embodiment_tag
+# new_embodiment is the SO-101 tag in the LeRobot GR00T docs. N1.5 is
+# rejected by 0.6.1; the base is nvidia/GR00T-N1.7-3B. Accept that model
+# license on the Hub before the first download.
+#
+# Official SO-101 fine-tune: chunk 16, relative arm actions, gripper
+# absolute, backbone frozen (tune_llm / tune_visual stay false; projector,
+# diffusion head, and vlln stay true). Their example uses batch 64.
+# Batch 16 matches the other pizza YAMLs and fits an L40S; the RTX PRO
+# 6000 can try --batch_size=32. max_steps is the warmup clock (5% of the
+# run), so it stays equal to steps.
+#
+# Flash-attention stays off. The backbone falls back to SDPA.
+#
+#   bash training/scripts/run_serverless.sh groot
+
+policy:
+  type: groot
+  push_to_hub: false
+  device: cuda
+  use_amp: false
+  base_model_path: nvidia/GR00T-N1.7-3B
+  embodiment_tag: new_embodiment
+  chunk_size: 16
+  n_action_steps: 16
+  use_relative_actions: true
+  relative_exclude_joints:
+    - gripper
+  use_bf16: true
+  use_flash_attention: false
+  tune_llm: false
+  tune_visual: false
+  tune_projector: true
+  tune_diffusion_model: true
+  tune_vlln: true
+  tune_top_llm_layers: 0
+  optimizer_lr: 1.0e-4
+  warmup_ratio: 0.05
+  max_steps: 20000
+
+dataset:
+  repo_id: robotpizzacup/robot-pizza-cup-1
+  video_backend: pyav
+  return_uint8: true
+  image_transforms:
+    enable: true
+    max_num_transforms: 2
+    tfs:
+      brightness:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          brightness: [0.8, 1.2]
+      contrast:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          contrast: [0.8, 1.2]
+      saturation:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          saturation: [0.8, 1.2]
+      hue:
+        weight: 1.0
+        type: ColorJitter
+        kwargs:
+          hue: [-0.03, 0.03]
+      sharpness:
+        weight: 0.0
+        type: Identity
+      affine:
+        weight: 0.0
+        type: Identity
+
+seed: 1000
+num_workers: 4
+steps: 20000
+batch_size: 16
+log_freq: 50
+save_freq: 5000
+env_eval_freq: 0
+
+wandb:
+  enable: true
+  disable_artifact: true
+  project: robotpizzacup

@@ -43,7 +43,7 @@ cp ../.env.example ../.env
 
 The sync log must name an interpreter under `~/.local/share/uv/python`. A line that says `/usr/bin/python3.12` means this environment will fail the same way again.
 
-That install includes LeRobot **0.6.1** with robot CLIs (`core_scripts` + `feetech`) and policy extras **ACT** (core), **SmolVLA**, **Diffusion**, and **π0 / π0.5**.
+That install includes LeRobot **0.6.1** with robot CLIs (`core_scripts` + `feetech`) and policy extras **ACT** (core), **SmolVLA**, **Diffusion**, **π0 / π0.5**, and **GR00T N1.7**.
 
 | Step | Command (from `so101`) |
 | --- | --- |

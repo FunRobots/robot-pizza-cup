@@ -147,9 +147,13 @@ bash training/scripts/run_serverless.sh act
 bash training/scripts/run_serverless.sh smolvla
 # or
 bash training/scripts/run_serverless.sh diffusion
+# or
+bash training/scripts/run_serverless.sh groot
+# or, after ACT works on the same scene
+bash training/scripts/run_serverless.sh pi05
 ```
 
-Step counts and batch sizes come from `training/policy/<policy>/config.yaml` (ACT 100k / 16, SmolVLA 60k / 16, diffusion 60k / 32). A 6h job timeout will not finish ACT; raise `JOB_TIMEOUT` or run on a DevLab. Checkpoints land every `save_freq` (10000).
+Step counts and batch sizes come from `training/policy/<policy>/config.yaml` (ACT 30k / 16, SmolVLA 60k / 16, diffusion 60k / 32, GR00T 20k / 16, π0.5 30k / 16). Checkpoints land every `save_freq`.
 
 Optional Hub copy for the robot laptop (no FS mount on the Mac):
 
@@ -192,7 +196,7 @@ Or `bash scripts/rollout.sh "$HF_USER/pizza-smolvla"` if you pushed (default Hub
 
 `python -m training.run` is an organizer leftover. Do not use it.
 
-YAML: `training/policy/{act,smolvla,diffusion}/config.yaml`. CLI flags override YAML.
+YAML: `training/policy/{act,smolvla,diffusion,groot,pi05}/config.yaml`. CLI flags override YAML.
 
 Serverless AI is **one VM per job** (no multi-node). Default: `gpu-rtx6000-a` / `1gpu-24vcpu-218gb` (RTX PRO 6000). Same preset with `gpu-rtx6000` in `us-central1`. L40S: `gpu-l40s-a` / `1gpu-24vcpu-96gb`. H100: `gpu-h100-sxm` / `1gpu-16vcpu-200gb`.
 
@@ -262,6 +266,8 @@ you accept lost work since the last `save_freq` and a possible silent retrain if
 | --- | --- | --- | --- | --- | --- | --- |
 | Install check | ACT | 2 | 20 | — | CPU / Docker CPU | local `outputs/` (throwaway) |
 | Job canary | ACT | 16 | 500 | — | RTX PRO 6000 `--debug` | shared FS |
-| First robot policy | ACT | 16 | 100k | 9 | RTX PRO 6000 Job or DevLab | FS (+ optional Hub) → rollout |
+| First robot policy | ACT | 16 | 30k | 2.7 | RTX PRO 6000 Job or DevLab | FS (+ optional Hub) → rollout |
 | Headline VLA | SmolVLA | 16 | 60k | 5.5 | RTX PRO 6000 Job or DevLab | same; YAML maps `front`/`top` → `camera1`/`camera2`, `empty_cameras=1` |
 | Optional | Diffusion | 32 | 60k | 11 | RTX PRO 6000 Job or DevLab | same; images resized to 240×320 |
+| Two-camera VLA | GR00T N1.7 | 16 | 20k | 1.8 | RTX PRO 6000 Job or DevLab | front + top, relative arm, absolute gripper |
+| Later VLA | π0.5 | 16 | 30k | 2.7 | RTX PRO 6000 Job or DevLab | expert-only; front + top kept, one empty camera |
